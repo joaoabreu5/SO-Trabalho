@@ -1,3 +1,6 @@
 #include <stdio.h>
 
-ssize_t readln(int fd, char *line, size_t size);
+#define SIZE 1024
+
+ssize_t readc(int, char *);
+ssize_t readln(int, char *, size_t);

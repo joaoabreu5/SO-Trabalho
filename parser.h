@@ -5,3 +5,7 @@ typedef struct operation
 } operation;
 
 typedef struct operation *Operation;
+
+Operation parse(char *filename);
+int free_Operation(Operation opv);
+int get_nr_max(char *op1, Operation opv);
