@@ -10,7 +10,7 @@
 /*
     Function that takes as a parameter a string that represents the name of the file we want to read.
     If the file exists, every line is parsed and added to an array of operation and the array is returned,
-    Else a error message is written in the stdout and NULL is returned
+    Else an error message is written in the stderr and NULL is returned
 */
 Operation parse(char *filename)
 {
