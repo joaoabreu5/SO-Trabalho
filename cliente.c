@@ -5,7 +5,7 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 
-#define SIZE 1024 
+#define SIZE 1024
 
 char *get_path(char *exec)
 {
@@ -27,9 +27,9 @@ void close_npipes(int n, int pipe_array[n][2])
 void free_command_array(char ***comandos, int N)
 {
     int i, j;
-    for(i=0; i<N; i++)
+    for (i = 0; i < N; i++)
     {
-        for(j=0; j<2; j++)
+        for (j = 0; j < 2; j++)
         {
             if (comandos[i][j] != NULL)
             {
@@ -41,16 +41,16 @@ void free_command_array(char ***comandos, int N)
             free(comandos[i]);
         }
     }
-    if(comandos != NULL)
+    if (comandos != NULL)
     {
         free(comandos);
     }
 }
 
-void proc_file(int argc, char* argv[])
+void proc_file(int argc, char *argv[])
 {
-    int command_number = argc-4;
-    int i, j, t, pid, r_exec, pipes[command_number-1][2];
+    int command_number = argc - 4;
+    int i, j, t, aux, pid, r_exec, pipes[command_number - 1][2];
     char *path = NULL, ***comandos = NULL;
 
     int fd_in = open(argv[2], O_RDONLY);
@@ -82,50 +82,64 @@ void proc_file(int argc, char* argv[])
     }
     else if (command_number > 1)
     {
-        comandos = malloc(command_number*sizeof(char **));
-        for(i=0; i<command_number; i++)
+        comandos = malloc(command_number * sizeof(char **));
+        for (i = 0; i < command_number; i++)
         {
-            comandos[i] = malloc(3*sizeof(char **));
-            comandos[i][0] = get_path(argv[i+4]);
-            comandos[i][1] = strdup(argv[i+4]);
+            comandos[i] = malloc(3 * sizeof(char **));
+            comandos[i][0] = get_path(argv[i + 4]);
+            comandos[i][1] = strdup(argv[i + 4]);
             comandos[i][2] = NULL;
         }
 
-        for(t=0; t<command_number-1; t++)
+        for (t = 0; t < command_number - 1; t++)
         {
             pipe(pipes[t]);
         }
 
         if ((pid = fork()) == 0)
         {
+            close(pipes[0][0]);
+            for (aux = 1; aux < command_number - 1; aux++)
+            {
+                close(pipes[aux][0]);
+                close(pipes[aux][1]);
+            }
             dup2(pipes[0][1], 1);
-            close_npipes(command_number-1, pipes);
+            close(pipes[0][1]);
             execvp(comandos[0][0], comandos[0]);
         }
 
-        for(i=1; i<command_number-1; i++)
+        close(pipes[0][1]);
+
+        for (i = 1; i < command_number - 1; i++)
         {
             if ((pid = fork()) == 0)
             {
-                dup2(pipes[i-1][0], 0);
+                close(pipes[i][0]);
+                for (aux = i + 1; aux < command_number - 1; aux++)
+                {
+                    close(pipes[aux][0]);
+                    close(pipes[aux][1]);
+                }
+                dup2(pipes[i - 1][0], 0);
                 dup2(pipes[i][1], 1);
-                close_npipes(command_number-1, pipes);
+                close(pipes[i - 1][0]);
+                close(pipes[i][1]);
                 r_exec = execvp(comandos[i][0], comandos[i]);
-                _exit(r_exec);
             }
+            close(pipes[i - 1][0]);
+            close(pipes[i][1]);
         }
-
         if ((pid = fork()) == 0)
         {
-            dup2(pipes[i-1][0], 0);
-            close_npipes(command_number-1, pipes);
+            dup2(pipes[i - 1][0], 0);
+            close(pipes[i - 1][0]);
             r_exec = execvp(comandos[i][0], comandos[i]);
-            _exit(r_exec);
         }
 
-        close_npipes(command_number-1, pipes);
+        close(pipes[i - 1][0]);
 
-        for(j=0; j<command_number; j++)
+        for (j = 0; j < command_number; j++)
         {
             wait(NULL);
         }
