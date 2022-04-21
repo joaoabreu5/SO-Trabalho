@@ -17,16 +17,6 @@ char *get_path(char *exec)
     return path;
 }
 
-void close_npipes(int N, int pipe_array[N][2])
-{
-    int i;
-    for (i=0; i<N; i++)
-    {
-        close(pipe_array[i][0]);
-        close(pipe_array[i][1]);
-    }
-}
-
 void free_command_array(char ***comandos, int N_linhas, int N_colunas)
 {
     int i, j;
@@ -82,10 +72,11 @@ int proc_file(int argc, char *argv[])
             wait(NULL);
         }
     }
+    
     else if (command_number > 1)
     {
         comandos = malloc(command_number * sizeof(char **));
-        for (i=0; i<command_number; i++)
+        for(i=0; i<command_number; i++)
         {
             comandos[i] = malloc(3 * sizeof(char **));
             comandos[i][0] = get_path(argv[i+4]);
@@ -93,7 +84,7 @@ int proc_file(int argc, char *argv[])
             comandos[i][2] = NULL;
         }
 
-        for (i=0; i<command_number-1; i++)
+        for(i=0; i<command_number-1; i++)
         {
             r_pipe = pipe(pipes[i]);
             if (r_pipe == -1)
@@ -116,10 +107,9 @@ int proc_file(int argc, char *argv[])
             r_exec = execvp(comandos[0][0], comandos[0]);
             _exit(r_exec);
         }
-
         close(pipes[0][1]);
 
-        for (i=1; i<command_number-1; i++)
+        for(i=1; i<command_number-1; i++)
         {
             if (fork() == 0)
             {
@@ -139,6 +129,7 @@ int proc_file(int argc, char *argv[])
             close(pipes[i - 1][0]);
             close(pipes[i][1]);
         }
+
         if (fork() == 0)
         {
             dup2(pipes[i-1][0], 0);
@@ -146,10 +137,9 @@ int proc_file(int argc, char *argv[])
             r_exec = execvp(comandos[i][0], comandos[i]);
             _exit(r_exec);
         }
-
         close(pipes[i-1][0]);
 
-        for (i=0; i<command_number; i++)
+        for(i=0; i<command_number; i++)
         {
             wait(NULL);
         }
@@ -159,6 +149,7 @@ int proc_file(int argc, char *argv[])
 
     dup2(fd_0, 0);
     dup2(fd_1, 1);
+
     return 0;
 }
 
