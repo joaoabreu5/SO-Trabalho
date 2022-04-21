@@ -9,27 +9,30 @@
 
 char *get_path(char *exec)
 {
-    char *path = calloc(SIZE, sizeof(char));
-    strcat(path, "./SDStore/");
+    char *directory = "./SDStore/";
+    int path_size = strlen(directory)+strlen(exec)+1;
+    char *path = calloc(path_size, sizeof(char));
+    strcat(path, directory);
     strcat(path, exec);
     return path;
 }
 
-void close_npipes(int n, int pipe_array[n][2])
+void close_npipes(int N, int pipe_array[N][2])
 {
-    for (int i = 0; i < n; i++)
+    int i;
+    for (i=0; i<N; i++)
     {
         close(pipe_array[i][0]);
         close(pipe_array[i][1]);
     }
 }
 
-void free_command_array(char ***comandos, int N)
+void free_command_array(char ***comandos, int N_linhas, int N_colunas)
 {
     int i, j;
-    for (i = 0; i < N; i++)
+    for (i=0; i<N_linhas; i++)
     {
-        for (j = 0; j < 2; j++)
+        for (j=0; j<N_colunas; j++)
         {
             if (comandos[i][j] != NULL)
             {
@@ -47,10 +50,10 @@ void free_command_array(char ***comandos, int N)
     }
 }
 
-void proc_file(int argc, char *argv[])
+int proc_file(int argc, char *argv[])
 {
     int command_number = argc - 4;
-    int i, j, t, aux, pid, r_exec, pipes[command_number - 1][2];
+    int i, j, r_exec, r_pipe, pipes[command_number-1][2];
     char *path = NULL, ***comandos = NULL;
 
     int fd_in = open(argv[2], O_RDONLY);
@@ -69,9 +72,8 @@ void proc_file(int argc, char *argv[])
     {
         if (fork() == 0)
         {
-            i = 4;
-            path = get_path(argv[i]);
-            r_exec = execl(path, argv[i], NULL);
+            path = get_path(argv[4]);
+            r_exec = execl(path, argv[4], NULL);
             free(path);
             _exit(r_exec);
         }
@@ -83,72 +85,81 @@ void proc_file(int argc, char *argv[])
     else if (command_number > 1)
     {
         comandos = malloc(command_number * sizeof(char **));
-        for (i = 0; i < command_number; i++)
+        for (i=0; i<command_number; i++)
         {
             comandos[i] = malloc(3 * sizeof(char **));
-            comandos[i][0] = get_path(argv[i + 4]);
-            comandos[i][1] = strdup(argv[i + 4]);
+            comandos[i][0] = get_path(argv[i+4]);
+            comandos[i][1] = strdup(argv[i+4]);
             comandos[i][2] = NULL;
         }
 
-        for (t = 0; t < command_number - 1; t++)
+        for (i=0; i<command_number-1; i++)
         {
-            pipe(pipes[t]);
+            r_pipe = pipe(pipes[i]);
+            if (r_pipe == -1)
+            {
+                perror("pipe");
+                return -1;
+            }
         }
 
-        if ((pid = fork()) == 0)
+        if (fork() == 0)
         {
             close(pipes[0][0]);
-            for (aux = 1; aux < command_number - 1; aux++)
+            for (i=1; i<command_number-1; i++)
             {
-                close(pipes[aux][0]);
-                close(pipes[aux][1]);
+                close(pipes[i][0]);
+                close(pipes[i][1]);
             }
             dup2(pipes[0][1], 1);
             close(pipes[0][1]);
-            execvp(comandos[0][0], comandos[0]);
+            r_exec = execvp(comandos[0][0], comandos[0]);
+            _exit(r_exec);
         }
 
         close(pipes[0][1]);
 
-        for (i = 1; i < command_number - 1; i++)
+        for (i=1; i<command_number-1; i++)
         {
-            if ((pid = fork()) == 0)
+            if (fork() == 0)
             {
                 close(pipes[i][0]);
-                for (aux = i + 1; aux < command_number - 1; aux++)
+                for (j=i+1; j<command_number-1; j++)
                 {
-                    close(pipes[aux][0]);
-                    close(pipes[aux][1]);
+                    close(pipes[j][0]);
+                    close(pipes[j][1]);
                 }
-                dup2(pipes[i - 1][0], 0);
+                dup2(pipes[i-1][0], 0);
                 dup2(pipes[i][1], 1);
-                close(pipes[i - 1][0]);
+                close(pipes[i-1][0]);
                 close(pipes[i][1]);
                 r_exec = execvp(comandos[i][0], comandos[i]);
+                _exit(r_exec);
             }
             close(pipes[i - 1][0]);
             close(pipes[i][1]);
         }
-        if ((pid = fork()) == 0)
+        if (fork() == 0)
         {
-            dup2(pipes[i - 1][0], 0);
-            close(pipes[i - 1][0]);
+            dup2(pipes[i-1][0], 0);
+            close(pipes[i-1][0]);
             r_exec = execvp(comandos[i][0], comandos[i]);
+            _exit(r_exec);
         }
 
-        close(pipes[i - 1][0]);
+        close(pipes[i-1][0]);
 
-        for (j = 0; j < command_number; j++)
+        for (i=0; i<command_number; i++)
         {
             wait(NULL);
         }
 
-        free_command_array(comandos, command_number);
+        free_command_array(comandos, command_number, 2);
     }
 
     dup2(fd_0, 0);
     dup2(fd_1, 1);
+    return 0;
 }
 
 int main(int argc, char *argv[])
