@@ -55,11 +55,7 @@ void create_directory(char *path)
     {
         mkdir(path_copy, 0777);
     }
-
-    if (path_copy != NULL)
-    {
-        free(path_copy);
-    }
+    free(path_copy);
 }
 
 int proc_file(int argc, char *argv[])
