@@ -4,13 +4,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 
 #define SIZE 1024
 
 char *get_path(char *exec)
 {
-    char *directory = "./SDStore/";
-    int path_size = strlen(directory)+strlen(exec)+1;
+    char *directory = "./SDStore-transf/";
+    int path_size = strlen(directory) + strlen(exec) + 1;
     char *path = calloc(path_size, sizeof(char));
     strcat(path, directory);
     strcat(path, exec);
@@ -40,11 +41,34 @@ void free_command_array(char ***comandos, int N_linhas, int N_colunas)
     }
 }
 
+void create_directory(char *path)
+{
+    int i;
+    char *path_copy = strdup(path);
+
+    for(i = strlen(path_copy)-1; i >= 0 && path_copy[i] != '/'; i--)
+    {
+        path_copy[i] = '\0';
+    }
+
+    if (strcmp(path_copy, "./") != 0 && strcmp(path_copy, "\0") != 0)
+    {
+        mkdir(path_copy, 0777);
+    }
+
+    if (path_copy != NULL)
+    {
+        free(path_copy);
+    }
+}
+
 int proc_file(int argc, char *argv[])
 {
     int command_number = argc - 4;
     int i, j, r_exec, r_pipe, pipes[command_number-1][2];
     char *path = NULL, ***comandos = NULL;
+
+    create_directory(argv[3]);
 
     int fd_in = open(argv[2], O_RDONLY);
     int fd_out = open(argv[3], O_WRONLY | O_CREAT | O_TRUNC, 0666);
