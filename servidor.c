@@ -62,19 +62,17 @@ void create_directory(char *path)
     free(path_copy);
 }
 
-char** parse_args(char *args, int *n_args)
+char **parse_args(char *args, int *n_args)
 {
     int i = 0;
     char *args_copy = strdup(args), *executavel = NULL;
-    char **argv = NULL; 
+    char **argv = NULL;
 
     if ((executavel = strsep(&args_copy, " ")) != NULL)
     {
-
-        printf("exec = %s\n", executavel);
         *n_args = atoi(executavel);
-        argv = malloc((*n_args) * sizeof(char *)); 
-        while((executavel = strsep(&args_copy, " ")) != NULL && i<(* n_args))
+        argv = malloc((*n_args) * sizeof(char *));
+        while ((executavel = strsep(&args_copy, " ")) != NULL && i < (*n_args))
         {
             argv[i] = strdup(executavel);
             i++;
@@ -213,30 +211,49 @@ int main(int argc, char *argv[])
         if ((opDir = opendir(argv[2])) != NULL)
         {
             closedir(opDir);
+
             Operation maxOperations, curOperations;
             maxOperations = parse(configFile);
             curOperations = calloc(1, sizeof(operation));
+
             mkfifo("fifo", 0777);
+
             char args[1000];
             int fdfifo, read_res;
+
             do
             {
                 fdfifo = open("fifo", O_RDONLY);
+
                 read_res = read(fdfifo, args, sizeof(args));
+
                 int n_args = 0;
-
-                printf("args = %s\n", args);
-
                 char **argv2 = parse_args(args, &n_args);
-
-                printf("%d\n", n_args);
 
                 if (read_res > 0)
                 {
-                    proc_file(n_args, argv2);
+
+                    if (strcmp("proc-file", argv2[0]) == 0)
+                    {
+                        proc_file(n_args, argv2);
+                    }
+                    else if (strcmp("status", argv2[0]) == 0)
+                    {
+                    }
+                    else if (strcmp("end", argv2[0]) == 0)
+                    {
+                        read_res = 0;
+                    }
+                    else
+                    {
+                        write(2, "Error: Command is not valid.\n", 30);
+                    }
                 }
+
                 close(fdfifo);
+
             } while (read_res > 0);
+
             unlink("fifo");
             return 0;
         }

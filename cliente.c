@@ -15,15 +15,13 @@ int number_of_Digits(int x)
     {
         count++;
     }
-    do 
+    do
     {
         x /= 10;
         count++;
-    } 
-    while (x != 0);
+    } while (x != 0);
     return count;
 }
-
 
 int main(int argc, char *argv[])
 {
@@ -38,8 +36,6 @@ int main(int argc, char *argv[])
         char *n_args = malloc(n_args_len * sizeof(char));
 
         snprintf(n_args, n_args_len, "%d", arguments);
-
-        printf("%s\n", n_args);
 
         strcpy(args, n_args);
         strcat(args, " ");
@@ -60,8 +56,8 @@ int main(int argc, char *argv[])
             strcat(args, argv[1]);
         }
         strcat(args, "\0");
-        
-        write(fdfifo, args, strlen(args)+1);
+
+        write(fdfifo, args, strlen(args) + 1);
     }
     close(fdfifo);
 }
