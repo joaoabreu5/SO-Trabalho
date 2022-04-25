@@ -5,6 +5,10 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include "parser.h"
 
 #define SIZE 1024
 
@@ -21,9 +25,9 @@ char *get_path(char *exec)
 void free_command_array(char ***comandos, int N_linhas, int N_colunas)
 {
     int i, j;
-    for (i=0; i<N_linhas; i++)
+    for (i = 0; i < N_linhas; i++)
     {
-        for (j=0; j<N_colunas; j++)
+        for (j = 0; j < N_colunas; j++)
         {
             if (comandos[i][j] != NULL)
             {
@@ -46,7 +50,7 @@ void create_directory(char *path)
     int i;
     char *path_copy = strdup(path);
 
-    for(i = strlen(path_copy)-1; i >= 0 && path_copy[i] != '/'; i--)
+    for (i = strlen(path_copy) - 1; i >= 0 && path_copy[i] != '/'; i--)
     {
         path_copy[i] = '\0';
     }
@@ -61,7 +65,7 @@ void create_directory(char *path)
 int proc_file(int argc, char *argv[])
 {
     int command_number = argc - 4;
-    int i, j, r_exec, r_pipe, pipes[command_number-1][2];
+    int i, j, r_exec, r_pipe, pipes[command_number - 1][2];
     char *path = NULL, ***comandos = NULL;
 
     create_directory(argv[3]);
@@ -92,19 +96,19 @@ int proc_file(int argc, char *argv[])
             wait(NULL);
         }
     }
-    
+
     else if (command_number > 1)
     {
         comandos = malloc(command_number * sizeof(char **));
-        for(i=0; i<command_number; i++)
+        for (i = 0; i < command_number; i++)
         {
             comandos[i] = malloc(3 * sizeof(char **));
-            comandos[i][0] = get_path(argv[i+4]);
-            comandos[i][1] = strdup(argv[i+4]);
+            comandos[i][0] = get_path(argv[i + 4]);
+            comandos[i][1] = strdup(argv[i + 4]);
             comandos[i][2] = NULL;
         }
 
-        for(i=0; i<command_number-1; i++)
+        for (i = 0; i < command_number - 1; i++)
         {
             r_pipe = pipe(pipes[i]);
             if (r_pipe == -1)
@@ -117,7 +121,7 @@ int proc_file(int argc, char *argv[])
         if (fork() == 0)
         {
             close(pipes[0][0]);
-            for (i=1; i<command_number-1; i++)
+            for (i = 1; i < command_number - 1; i++)
             {
                 close(pipes[i][0]);
                 close(pipes[i][1]);
@@ -129,19 +133,19 @@ int proc_file(int argc, char *argv[])
         }
         close(pipes[0][1]);
 
-        for(i=1; i<command_number-1; i++)
+        for (i = 1; i < command_number - 1; i++)
         {
             if (fork() == 0)
             {
                 close(pipes[i][0]);
-                for (j=i+1; j<command_number-1; j++)
+                for (j = i + 1; j < command_number - 1; j++)
                 {
                     close(pipes[j][0]);
                     close(pipes[j][1]);
                 }
-                dup2(pipes[i-1][0], 0);
+                dup2(pipes[i - 1][0], 0);
                 dup2(pipes[i][1], 1);
-                close(pipes[i-1][0]);
+                close(pipes[i - 1][0]);
                 close(pipes[i][1]);
                 r_exec = execvp(comandos[i][0], comandos[i]);
                 _exit(r_exec);
@@ -152,14 +156,14 @@ int proc_file(int argc, char *argv[])
 
         if (fork() == 0)
         {
-            dup2(pipes[i-1][0], 0);
-            close(pipes[i-1][0]);
+            dup2(pipes[i - 1][0], 0);
+            close(pipes[i - 1][0]);
             r_exec = execvp(comandos[i][0], comandos[i]);
             _exit(r_exec);
         }
-        close(pipes[i-1][0]);
+        close(pipes[i - 1][0]);
 
-        for(i=0; i<command_number; i++)
+        for (i = 0; i < command_number; i++)
         {
             wait(NULL);
         }
@@ -175,9 +179,53 @@ int proc_file(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-    if (argc > 1 && strcmp(argv[1], "proc-file") == 0)
+    if (argc < 3)
     {
-        proc_file(argc, argv);
+        write(2, "Error: Not enough arguments.\n", 30);
+        return 2;
     }
-    return 0;
+    int configFile = open(argv[1], O_RDONLY);
+    if (configFile > 0)
+    {
+        DIR *opDir;
+        if ((opDir = opendir(argv[2])) != NULL)
+        {
+            closedir(opDir);
+            Operation maxOperations, curOperations;
+            maxOperations = parse(configFile);
+            curOperations = calloc(1, sizeof(operation));
+            mkfifo("fifo", 0777);
+            char args[1000];
+            int fdfifo, read_res;
+            /*
+            if (argc > 1 && strcmp(argv[1], "proc-file") == 0)
+            {
+                proc_file(argc, argv);
+            }
+            */
+            do
+            {
+                fdfifo = open("fifo", O_RDONLY);
+                read_res = read(fdfifo, args, sizeof(args));
+                if (read_res > 0)
+                {
+                    printf("%s \n", args);
+                }
+                close(fdfifo);
+            } while (read_res > 0);
+            unlink("fifo");
+            return 0;
+        }
+        else
+        {
+            write(2, "Error: Directory does not exist.\n", 34);
+            return 2;
+        }
+    }
+    else
+    {
+        write(2, "Error: The file does not exist.\n", 33);
+        close(configFile);
+        return 2;
+    }
 }

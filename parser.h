@@ -1,11 +1,9 @@
 typedef struct operation
 {
-    int n_max;
-    char *op;
+    int nop, bcompress, bdecompress, gcompress, gdecompress, encrypt, decrypt;
 } operation;
 
 typedef struct operation *Operation;
 
-Operation parse(char *filename);
-int free_Operation(Operation opv);
-int get_nr_max(char *op1, Operation opv);
+Operation parse(int fd);
+void print_Op(Operation op);
