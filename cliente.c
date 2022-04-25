@@ -8,16 +8,45 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+int number_of_Digits(int x)
+{
+    int count = 0;
+    if (x < 0)
+    {
+        count++;
+    }
+    do 
+    {
+        x /= 10;
+        count++;
+    } 
+    while (x != 0);
+    return count;
+}
+
+
 int main(int argc, char *argv[])
 {
     int fdfifo = open("fifo", O_WRONLY), i;
     if (argc > 1)
     {
         int arguments = argc - 1;
-        char args[1000];
+        char *args = malloc(1000 * sizeof(char));
+
+        int n_args_len = number_of_Digits(arguments) + 1;
+
+        char *n_args = malloc(n_args_len * sizeof(char));
+
+        snprintf(n_args, n_args_len, "%d", arguments);
+
+        printf("%s\n", n_args);
+
+        strcpy(args, n_args);
+        strcat(args, " ");
+
         if (arguments > 1)
         {
-            strcpy(args, argv[1]);
+            strcat(args, argv[1]);
             strcat(args, " ");
             for (i = 2; i < argc - 1; i++)
             {
@@ -25,14 +54,14 @@ int main(int argc, char *argv[])
                 strcat(args, " ");
             }
             strcat(args, argv[i]);
-            strcat(args, "\0");
         }
         else
         {
-            strcpy(args, argv[1]);
-            strcat(args, "\0");
+            strcat(args, argv[1]);
         }
-        write(fdfifo, args, sizeof(args));
+        strcat(args, "\0");
+        
+        write(fdfifo, args, strlen(args)+1);
     }
     close(fdfifo);
 }

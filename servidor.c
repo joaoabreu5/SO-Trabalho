@@ -62,16 +62,37 @@ void create_directory(char *path)
     free(path_copy);
 }
 
+char** parse_args(char *args, int *n_args)
+{
+    int i = 0;
+    char *args_copy = strdup(args), *executavel = NULL;
+    char **argv = NULL; 
+
+    if ((executavel = strsep(&args_copy, " ")) != NULL)
+    {
+
+        printf("exec = %s\n", executavel);
+        *n_args = atoi(executavel);
+        argv = malloc((*n_args) * sizeof(char *)); 
+        while((executavel = strsep(&args_copy, " ")) != NULL && i<(* n_args))
+        {
+            argv[i] = strdup(executavel);
+            i++;
+        }
+    }
+    return argv;
+}
+
 int proc_file(int argc, char *argv[])
 {
-    int command_number = argc - 4;
+    int command_number = argc - 3;
     int i, j, r_exec, r_pipe, pipes[command_number - 1][2];
     char *path = NULL, ***comandos = NULL;
 
-    create_directory(argv[3]);
+    create_directory(argv[2]);
 
-    int fd_in = open(argv[2], O_RDONLY);
-    int fd_out = open(argv[3], O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    int fd_in = open(argv[1], O_RDONLY);
+    int fd_out = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, 0666);
 
     int fd_0 = dup(0);
     int fd_1 = dup(1);
@@ -86,8 +107,8 @@ int proc_file(int argc, char *argv[])
     {
         if (fork() == 0)
         {
-            path = get_path(argv[4]);
-            r_exec = execl(path, argv[4], NULL);
+            path = get_path(argv[3]);
+            r_exec = execl(path, argv[3], NULL);
             free(path);
             _exit(r_exec);
         }
@@ -103,8 +124,8 @@ int proc_file(int argc, char *argv[])
         for (i = 0; i < command_number; i++)
         {
             comandos[i] = malloc(3 * sizeof(char **));
-            comandos[i][0] = get_path(argv[i + 4]);
-            comandos[i][1] = strdup(argv[i + 4]);
+            comandos[i][0] = get_path(argv[i + 3]);
+            comandos[i][1] = strdup(argv[i + 3]);
             comandos[i][2] = NULL;
         }
 
@@ -179,6 +200,7 @@ int proc_file(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
+    int i;
     if (argc < 3)
     {
         write(2, "Error: Not enough arguments.\n", 30);
@@ -197,19 +219,21 @@ int main(int argc, char *argv[])
             mkfifo("fifo", 0777);
             char args[1000];
             int fdfifo, read_res;
-            /*
-            if (argc > 1 && strcmp(argv[1], "proc-file") == 0)
-            {
-                proc_file(argc, argv);
-            }
-            */
             do
             {
                 fdfifo = open("fifo", O_RDONLY);
                 read_res = read(fdfifo, args, sizeof(args));
+                int n_args = 0;
+
+                printf("args = %s\n", args);
+
+                char **argv2 = parse_args(args, &n_args);
+
+                printf("%d\n", n_args);
+
                 if (read_res > 0)
                 {
-                    printf("%s \n", args);
+                    proc_file(n_args, argv2);
                 }
                 close(fdfifo);
             } while (read_res > 0);
