@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
     if (argc < 3)
     {
         write(2, "Error: Not enough arguments.\n", 30);
-        return 2;
+        _exit(EXIT_FAILURE);
     }
     int configFile = open(argv[1], O_RDONLY);
     if (configFile > 0)
@@ -227,46 +227,52 @@ int main(int argc, char *argv[])
 
                 read_res = read(fdfifo, args, sizeof(args));
 
-                int n_args = 0;
-                char **argv2 = parse_args(args, &n_args);
-
-                if (read_res > 0)
+                if (strcmp("Error", args) != 0)
                 {
+                    int n_args = 0;
+                    char **argv2 = parse_args(args, &n_args);
 
-                    if (strcmp("proc-file", argv2[0]) == 0)
+                    if (read_res > 0)
                     {
-                        proc_file(n_args, argv2);
+
+                        if (strcmp("proc-file", argv2[0]) == 0)
+                        {
+                            proc_file(n_args, argv2);
+                        }
+                        else if (strcmp("status", argv2[0]) == 0)
+                        {
+                        }
+                        else if (strcmp("end", argv2[0]) == 0)
+                        {
+                            read_res = 0;
+                        }
+                        else
+                        {
+                            write(2, "Error: Command is not valid.\n", 30);
+                        }
                     }
-                    else if (strcmp("status", argv2[0]) == 0)
-                    {
-                    }
-                    else if (strcmp("end", argv2[0]) == 0)
-                    {
-                        read_res = 0;
-                    }
-                    else
-                    {
-                        write(2, "Error: Command is not valid.\n", 30);
-                    }
+
+                    close(fdfifo);
                 }
-
-                close(fdfifo);
-
+                else
+                {
+                    write(2, "Error: Command is not valid.\n", 30);
+                }
             } while (read_res > 0);
 
             unlink("fifo");
-            return 0;
         }
         else
         {
             write(2, "Error: Directory does not exist.\n", 34);
-            return 2;
+            _exit(EXIT_FAILURE);
         }
     }
     else
     {
         write(2, "Error: The file does not exist.\n", 33);
         close(configFile);
-        return 2;
+        _exit(EXIT_FAILURE);
     }
+    _exit(EXIT_SUCCESS);
 }

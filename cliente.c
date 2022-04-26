@@ -26,38 +26,55 @@ int number_of_Digits(int x)
 int main(int argc, char *argv[])
 {
     int fdfifo = open("fifo", O_WRONLY), i;
-    if (argc > 1)
+    if (fdfifo > 0)
     {
-        int arguments = argc - 1;
-        char *args = malloc(1000 * sizeof(char));
-
-        int n_args_len = number_of_Digits(arguments) + 1;
-
-        char *n_args = malloc(n_args_len * sizeof(char));
-
-        snprintf(n_args, n_args_len, "%d", arguments);
-
-        strcpy(args, n_args);
-        strcat(args, " ");
-
-        if (arguments > 1)
+        if (argc > 1)
         {
-            strcat(args, argv[1]);
+            int arguments = argc - 1;
+            char *args = malloc(1000 * sizeof(char));
+
+            int n_args_len = number_of_Digits(arguments) + 1;
+
+            char *n_args = malloc(n_args_len * sizeof(char));
+
+            snprintf(n_args, n_args_len, "%d", arguments);
+
+            strcpy(args, n_args);
             strcat(args, " ");
-            for (i = 2; i < argc - 1; i++)
+
+            if (arguments > 1)
             {
-                strcat(args, argv[i]);
+                strcat(args, argv[1]);
                 strcat(args, " ");
+                for (i = 2; i < argc - 1; i++)
+                {
+                    strcat(args, argv[i]);
+                    strcat(args, " ");
+                }
+                strcat(args, argv[i]);
             }
-            strcat(args, argv[i]);
+            else
+            {
+                strcat(args, argv[1]);
+            }
+            strcat(args, "\0");
+
+            write(fdfifo, args, strlen(args) + 1);
+            close(fdfifo);
         }
         else
         {
-            strcat(args, argv[1]);
+            write(fdfifo, "Error", 6);
+            write(2, "Error: Not enough arguments.\n", 30);
+            close(fdfifo);
+            _exit(EXIT_FAILURE);
         }
-        strcat(args, "\0");
-
-        write(fdfifo, args, strlen(args) + 1);
     }
-    close(fdfifo);
+    else
+    {
+        write(2, "Error: Fifo does not exist.\n", 29);
+        close(fdfifo);
+        _exit(EXIT_FAILURE);
+    }
+    _exit(EXIT_SUCCESS);
 }
