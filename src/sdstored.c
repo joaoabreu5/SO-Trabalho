@@ -104,6 +104,123 @@ char **parse_args(char *args, int *n_args)
     return argv;
 }
 
+int check_resources(char **args, int n_args, Operation maxOperations, Operation curOperations)
+{
+    int i, r = 1;
+
+    for(i=1; i<n_args && r==1; i++)
+    {
+        if (strcmp(args[i], "nop") == 0)
+        {
+            if (curOperations->nop >= maxOperations->nop) 
+                r = 0;
+        }
+        else if (strcmp(args[i], "bcompress") == 0)
+        {
+            if (curOperations->bcompress >= maxOperations->bcompress)
+                r = 0;
+        }
+        else if (strcmp(args[i], "bdecompress") == 0)
+        {
+            if (curOperations->bdecompress >= maxOperations->bdecompress)
+                r = 0;
+        }
+        else if (strcmp(args[i], "gcompress") == 0)
+        {
+            if (curOperations->gcompress >= maxOperations->gcompress)
+                r = 0;
+        }
+        else if (strcmp(args[i], "gdecompress") == 0)
+        {
+            if (curOperations->gdecompress >= maxOperations->gdecompress)
+                r = 0;
+        }
+        else if (strcmp(args[i], "encrypt") == 0)
+        {
+            if (curOperations->encrypt >= maxOperations->encrypt)
+                r = 0;
+        }
+        else if (strcmp(args[i], "decrypt") == 0)
+        {
+            if (curOperations->decrypt >= maxOperations->decrypt)
+                r = 0;
+        }
+    }
+
+    if (r == 1)
+    {
+        for(i=1; i<n_args; i++)
+        {
+            if (strcmp(args[i], "nop") == 0)
+            {
+                (curOperations->nop)++;
+            }
+            else if (strcmp(args[i], "bcompress") == 0)
+            {
+                (curOperations->bcompress)++;
+            }
+            else if (strcmp(args[i], "bdecompress") == 0)
+            {
+                (curOperations->bdecompress)++;
+            }
+            else if (strcmp(args[i], "gcompress") == 0)
+            {
+                (curOperations->gcompress)++;
+            }
+            else if (strcmp(args[i], "gdecompress") == 0)
+            {
+                (curOperations->gdecompress)++;
+            }
+            else if (strcmp(args[i], "encrypt") == 0)
+            {
+                (curOperations->encrypt)++;
+            }
+            else if (strcmp(args[i], "decrypt") == 0)
+            {
+                (curOperations->decrypt)++;
+            }
+        }
+    }
+    
+    return r;
+}
+
+void decrement_resources(char **args, int n_args, Operation curOperations)
+{
+    int i;
+    for(i=1; i<n_args; i++)
+    {
+        if (strcmp(args[i], "nop") == 0)
+        {
+            (curOperations->nop)--;
+        }
+        else if (strcmp(args[i], "bcompress") == 0)
+        {
+            (curOperations->bcompress)--;
+        }
+        else if (strcmp(args[i], "bdecompress") == 0)
+        {
+            (curOperations->bdecompress)--;
+        }
+        else if (strcmp(args[i], "gcompress") == 0)
+        {
+            (curOperations->gcompress)--;
+        }
+        else if (strcmp(args[i], "gdecompress") == 0)
+        {
+            (curOperations->gdecompress)--;
+        }
+        else if (strcmp(args[i], "encrypt") == 0)
+        {
+            (curOperations->encrypt)--;
+        }
+        else if (strcmp(args[i], "decrypt") == 0)
+        {
+            (curOperations->decrypt)--;
+        }
+    }
+}
+
 int proc_file(int argc, char *argv[], char *execs_directory)
 {
     int command_number = argc - 3;
@@ -221,8 +338,6 @@ int proc_file(int argc, char *argv[], char *execs_directory)
 
 int main(int argc, char *argv[])
 {
-    int i;
-
     if (argc < 3)
     {
         write(2, "Error: Not enough arguments.\n", 30);
@@ -262,7 +377,12 @@ int main(int argc, char *argv[])
 
                         if (strcmp("proc-file", args_cliente[0]) == 0)
                         {
-                            proc_file(n_args_cliente, args_cliente, argv[2]);
+                            if (check_resources(args_cliente, n_args_cliente, maxOperations, curOperations) == 1)
+                            {
+                                proc_file(n_args_cliente, args_cliente, argv[2]);
+                                decrement_resources(args_cliente, n_args_cliente, curOperations);
+                            }
+                            print_Op(curOperations);
                         }
                         else if (strcmp("status", args_cliente[0]) == 0)
                         {
@@ -279,12 +399,14 @@ int main(int argc, char *argv[])
 
                     free_args_cliente_array(args_cliente, n_args_cliente);
 
-                    close(fd_fifo);
                 }
                 else
                 {
                     write(2, "Error: Command is not valid.\n", 30);
                 }
+
+                 close(fd_fifo);
+
             } while (read_res > 0);
 
             free(maxOperations);
