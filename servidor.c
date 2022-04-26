@@ -219,13 +219,13 @@ int main(int argc, char *argv[])
             mkfifo("fifo", 0777);
 
             char args[1000];
-            int fdfifo, read_res;
+            int fd_fifo, read_res;
 
             do
             {
-                fdfifo = open("fifo", O_RDONLY);
+                fd_fifo = open("fifo", O_RDONLY);
 
-                read_res = read(fdfifo, args, sizeof(args));
+                read_res = read(fd_fifo, args, sizeof(args));
 
                 if (strcmp("Error", args) != 0)
                 {
@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
                         }
                     }
 
-                    close(fdfifo);
+                    close(fd_fifo);
                 }
                 else
                 {

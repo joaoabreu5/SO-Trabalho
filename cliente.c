@@ -25,16 +25,23 @@ int number_of_Digits(int x)
 
 int main(int argc, char *argv[])
 {
-    int fdfifo = open("fifo", O_WRONLY), i;
-    if (fdfifo > 0)
+    int fd_fifo = open("fifo", O_WRONLY);
+    int i, args_size = 0;
+
+    if (fd_fifo > 0)
     {
         if (argc > 1)
         {
             int arguments = argc - 1;
-            char *args = malloc(1000 * sizeof(char));
-
             int n_args_len = number_of_Digits(arguments) + 1;
 
+            for(i=1; i<argc; i++)
+            {
+                args_size += strlen(argv[i]);
+            }
+            args_size += n_args_len + arguments;
+
+            char *args = malloc(args_size * sizeof(char));
             char *n_args = malloc(n_args_len * sizeof(char));
 
             snprintf(n_args, n_args_len, "%d", arguments);
@@ -59,21 +66,24 @@ int main(int argc, char *argv[])
             }
             strcat(args, "\0");
 
-            write(fdfifo, args, strlen(args) + 1);
-            close(fdfifo);
+            write(fd_fifo, args, strlen(args) + 1);
+            close(fd_fifo);
+            
+            free(args);
+            free(n_args);
         }
         else
         {
-            write(fdfifo, "Error", 6);
+            write(fd_fifo, "Error", 6);
             write(2, "Error: Not enough arguments.\n", 30);
-            close(fdfifo);
+            close(fd_fifo);
             _exit(EXIT_FAILURE);
         }
     }
     else
     {
         write(2, "Error: Fifo does not exist.\n", 29);
-        close(fdfifo);
+        close(fd_fifo);
         _exit(EXIT_FAILURE);
     }
     _exit(EXIT_SUCCESS);
