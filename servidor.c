@@ -12,9 +12,8 @@
 
 #define SIZE 1024
 
-char *get_path(char *exec)
+char *get_path(char *exec, char *directory)
 {
-    char *directory = "./SDStore-transf/";
     int path_size = strlen(directory) + strlen(exec) + 1;
     char *path = calloc(path_size, sizeof(char));
     strcat(path, directory);
@@ -45,6 +44,22 @@ void free_command_array(char ***comandos, int N_linhas, int N_colunas)
     }
 }
 
+void free_args_cliente_array(char **args_cliente, int n_args)
+{
+    int i;
+    for(i=0; i<n_args; i++)
+    {
+        if (args_cliente[i] != NULL)
+        {
+            free(args_cliente[i]);
+        }
+    }
+    if (args_cliente != NULL)
+    {
+        free(args_cliente);
+    }
+}
+
 void create_directory(char *path)
 {
     int i;
@@ -65,8 +80,10 @@ void create_directory(char *path)
 char **parse_args(char *args, int *n_args)
 {
     int i = 0;
-    char *args_copy = strdup(args), *executavel = NULL;
+    char *args_copy = strdup(args), *executavel = NULL, *args_copy_free = NULL;
     char **argv = NULL;
+
+    args_copy_free = args_copy;
 
     if ((executavel = strsep(&args_copy, " ")) != NULL)
     {
@@ -78,10 +95,16 @@ char **parse_args(char *args, int *n_args)
             i++;
         }
     }
+
+    if (args_copy_free != NULL)
+    {
+        free(args_copy_free);
+    }
+
     return argv;
 }
 
-int proc_file(int argc, char *argv[])
+int proc_file(int argc, char *argv[], char *execs_directory)
 {
     int command_number = argc - 3;
     int i, j, r_exec, r_pipe, pipes[command_number - 1][2];
@@ -105,7 +128,7 @@ int proc_file(int argc, char *argv[])
     {
         if (fork() == 0)
         {
-            path = get_path(argv[3]);
+            path = get_path(argv[3], execs_directory);
             r_exec = execl(path, argv[3], NULL);
             free(path);
             _exit(r_exec);
@@ -122,7 +145,7 @@ int proc_file(int argc, char *argv[])
         for (i = 0; i < command_number; i++)
         {
             comandos[i] = malloc(3 * sizeof(char **));
-            comandos[i][0] = get_path(argv[i + 3]);
+            comandos[i][0] = get_path(argv[i + 3], execs_directory);
             comandos[i][1] = strdup(argv[i + 3]);
             comandos[i][2] = NULL;
         }
@@ -199,11 +222,13 @@ int proc_file(int argc, char *argv[])
 int main(int argc, char *argv[])
 {
     int i;
+
     if (argc < 3)
     {
         write(2, "Error: Not enough arguments.\n", 30);
         _exit(EXIT_FAILURE);
     }
+
     int configFile = open(argv[1], O_RDONLY);
     if (configFile > 0)
     {
@@ -212,7 +237,7 @@ int main(int argc, char *argv[])
         {
             closedir(opDir);
 
-            Operation maxOperations, curOperations;
+            Operation maxOperations = NULL, curOperations = NULL;
             maxOperations = parse(configFile);
             curOperations = calloc(1, sizeof(operation));
 
@@ -229,20 +254,20 @@ int main(int argc, char *argv[])
 
                 if (strcmp("Error", args) != 0)
                 {
-                    int n_args = 0;
-                    char **argv2 = parse_args(args, &n_args);
+                    int n_args_cliente = 0;
+                    char **args_cliente = parse_args(args, &n_args_cliente);
 
                     if (read_res > 0)
                     {
 
-                        if (strcmp("proc-file", argv2[0]) == 0)
+                        if (strcmp("proc-file", args_cliente[0]) == 0)
                         {
-                            proc_file(n_args, argv2);
+                            proc_file(n_args_cliente, args_cliente, argv[2]);
                         }
-                        else if (strcmp("status", argv2[0]) == 0)
+                        else if (strcmp("status", args_cliente[0]) == 0)
                         {
                         }
-                        else if (strcmp("end", argv2[0]) == 0)
+                        else if (strcmp("end", args_cliente[0]) == 0)
                         {
                             read_res = 0;
                         }
@@ -252,6 +277,8 @@ int main(int argc, char *argv[])
                         }
                     }
 
+                    free_args_cliente_array(args_cliente, n_args_cliente);
+
                     close(fd_fifo);
                 }
                 else
@@ -259,6 +286,9 @@ int main(int argc, char *argv[])
                     write(2, "Error: Command is not valid.\n", 30);
                 }
             } while (read_res > 0);
+
+            free(maxOperations);
+            free(curOperations);
 
             unlink("fifo");
         }

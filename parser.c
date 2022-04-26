@@ -15,13 +15,16 @@
 Operation parse(int fd)
 {
     int i = 0;
-    char *buffer, *aux, *line;
+    char *buffer, *aux, *line, *aux_free = NULL;
     Operation ops = NULL;
+
     buffer = malloc(sizeof(char) * 100);
-    ops = (Operation)calloc(1, sizeof(operation));
+    ops = calloc(1, sizeof(operation));
+
     while (readln(fd, buffer, 100) > 0 && i < OP_SIZE)
     {
         aux = strdup(buffer);
+        aux_free = aux;
         line = strsep(&aux, " ");
         if (line != NULL)
         {
@@ -54,8 +57,14 @@ Operation parse(int fd)
                 ops->decrypt = atoi(aux);
             }
         }
+        if (aux_free != NULL)
+        {
+            free(aux_free);
+        }
         i++;
     }
+
+    free(buffer);
 
     return ops;
 }
