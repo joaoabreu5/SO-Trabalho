@@ -47,7 +47,7 @@ void free_command_array(char ***comandos, int N_linhas, int N_colunas)
 void free_args_cliente_array(char **args_cliente, int n_args)
 {
     int i;
-    for(i=0; i<n_args; i++)
+    for (i = 0; i < n_args; i++)
     {
         if (args_cliente[i] != NULL)
         {
@@ -107,88 +107,73 @@ char **parse_args(char *args, int *n_args)
 int check_resources(char **args, int n_args, Operation maxOperations, Operation curOperations)
 {
     int i, r = 1;
+    int nop, bcompress, bdecompress, gcompress, gdecompress, encrypt, decrypt;
+    nop = bcompress = bdecompress = gcompress = gdecompress = encrypt = decrypt = 0;
 
-    for(i=1; i<n_args && r==1; i++)
+    for (i = 1; i < n_args && r == 1; i++)
     {
         if (strcmp(args[i], "nop") == 0)
         {
-            if (curOperations->nop >= maxOperations->nop) 
+            nop++;
+            if (curOperations->nop + nop > maxOperations->nop)
                 r = 0;
         }
         else if (strcmp(args[i], "bcompress") == 0)
         {
-            if (curOperations->bcompress >= maxOperations->bcompress)
+            bcompress++;
+            if (curOperations->bcompress + bcompress > maxOperations->bcompress)
                 r = 0;
         }
         else if (strcmp(args[i], "bdecompress") == 0)
         {
-            if (curOperations->bdecompress >= maxOperations->bdecompress)
+            bdecompress++;
+            if (curOperations->bdecompress + bdecompress > maxOperations->bdecompress)
                 r = 0;
         }
         else if (strcmp(args[i], "gcompress") == 0)
         {
-            if (curOperations->gcompress >= maxOperations->gcompress)
+            gcompress++;
+            if (curOperations->gcompress + gcompress > maxOperations->gcompress)
                 r = 0;
         }
         else if (strcmp(args[i], "gdecompress") == 0)
         {
-            if (curOperations->gdecompress >= maxOperations->gdecompress)
+            gdecompress++;
+            if (curOperations->gdecompress + gdecompress > maxOperations->gdecompress)
                 r = 0;
         }
         else if (strcmp(args[i], "encrypt") == 0)
         {
-            if (curOperations->encrypt >= maxOperations->encrypt)
+            encrypt++;
+            if (curOperations->encrypt + encrypt > maxOperations->encrypt)
                 r = 0;
         }
         else if (strcmp(args[i], "decrypt") == 0)
         {
-            if (curOperations->decrypt >= maxOperations->decrypt)
+            decrypt++;
+            if (curOperations->decrypt + decrypt > maxOperations->decrypt)
                 r = 0;
         }
     }
 
     if (r == 1)
     {
-        for(i=1; i<n_args; i++)
-        {
-            if (strcmp(args[i], "nop") == 0)
-            {
-                (curOperations->nop)++;
-            }
-            else if (strcmp(args[i], "bcompress") == 0)
-            {
-                (curOperations->bcompress)++;
-            }
-            else if (strcmp(args[i], "bdecompress") == 0)
-            {
-                (curOperations->bdecompress)++;
-            }
-            else if (strcmp(args[i], "gcompress") == 0)
-            {
-                (curOperations->gcompress)++;
-            }
-            else if (strcmp(args[i], "gdecompress") == 0)
-            {
-                (curOperations->gdecompress)++;
-            }
-            else if (strcmp(args[i], "encrypt") == 0)
-            {
-                (curOperations->encrypt)++;
-            }
-            else if (strcmp(args[i], "decrypt") == 0)
-            {
-                (curOperations->decrypt)++;
-            }
-        }
+        curOperations->nop = curOperations->nop + nop;
+        curOperations->bcompress = curOperations->bcompress + bcompress;
+        curOperations->bdecompress = curOperations->bdecompress + bdecompress;
+        curOperations->gcompress = curOperations->gcompress + gcompress;
+        curOperations->gdecompress = curOperations->gdecompress + gdecompress;
+        curOperations->encrypt = curOperations->encrypt + encrypt;
+        curOperations->decrypt = curOperations->decrypt + decrypt;
     }
-    
+
     return r;
 }
 
 void decrement_resources(char **args, int n_args, Operation curOperations)
 {
     int i;
-    for(i=1; i<n_args; i++)
+    for (i = 1; i < n_args; i++)
     {
         if (strcmp(args[i], "nop") == 0)
         {
@@ -398,14 +383,13 @@ int main(int argc, char *argv[])
                     }
 
                     free_args_cliente_array(args_cliente, n_args_cliente);
-
                 }
                 else
                 {
                     write(2, "Error: Command is not valid.\n", 30);
                 }
 
-                 close(fd_fifo);
+                close(fd_fifo);
 
             } while (read_res > 0);
 
