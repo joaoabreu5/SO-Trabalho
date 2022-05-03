@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include "parser.h"
+#include "declarations.h"
 
 #define SIZE 1024
 
@@ -206,11 +207,13 @@ void decrement_resources(char **args, int n_args, Operation curOperations)
     }
 }
 
-int proc_file(int argc, char *argv[], char *execs_directory)
+int proc_file(int argc, char *argv[], char *execs_directory, int fd_client_fifo)
 {
     int command_number = argc - 3;
     int i, j, r_exec, r_pipe, pipes[command_number - 1][2];
     char *path = NULL, ***comandos = NULL;
+
+    write(fd_client_fifo, "Processing", 12);
 
     create_directory(argv[2]);
 
@@ -314,7 +317,7 @@ int proc_file(int argc, char *argv[], char *execs_directory)
 
         free_command_array(comandos, command_number, 2);
     }
-
+    write(fd_client_fifo, "Terminated", 12);
     dup2(fd_0, 0);
     dup2(fd_1, 1);
 
@@ -341,62 +344,66 @@ int main(int argc, char *argv[])
             maxOperations = parse(configFile);
             curOperations = calloc(1, sizeof(operation));
 
-            mkfifo("fifo", 0777);
+            mkfifo(SERVER_FIFO_NAME, 0777);
 
-            char args[1000];
-            int fd_fifo, read_res;
+            int read_res;
+            char client_fifo[1024];
 
-            do
+            int fiford = open(SERVER_FIFO_NAME, O_RDONLY);
+            int fifowr = open(SERVER_FIFO_NAME, O_WRONLY);
+
+            message messageFromClient;
+
+            while ((read_res = read(fiford, &messageFromClient, sizeof(messageFromClient))) > 0)
             {
-                fd_fifo = open("fifo", O_RDONLY);
+                snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)messageFromClient.client_pid);
+                int fd_client_fifo;
 
-                read_res = read(fd_fifo, args, sizeof(args));
+                while ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
+                    perror("open");
 
-                if (strcmp("Error", args) != 0)
+                if (strcmp("Error", messageFromClient.commands) != 0)
                 {
                     int n_args_cliente = 0;
-                    char **args_cliente = parse_args(args, &n_args_cliente);
+                    char **args_cliente = parse_args(messageFromClient.commands, &n_args_cliente);
 
-                    if (read_res > 0)
+                    if (strcmp("proc-file", args_cliente[0]) == 0)
                     {
-
-                        if (strcmp("proc-file", args_cliente[0]) == 0)
+                        if (check_resources(args_cliente, n_args_cliente, maxOperations, curOperations) == 1)
                         {
-                            if (check_resources(args_cliente, n_args_cliente, maxOperations, curOperations) == 1)
-                            {
-                                proc_file(n_args_cliente, args_cliente, argv[2]);
-                                decrement_resources(args_cliente, n_args_cliente, curOperations);
-                            }
-                            print_Op(curOperations);
+                            proc_file(n_args_cliente, args_cliente, argv[2], fd_client_fifo);
+                            decrement_resources(args_cliente, n_args_cliente, curOperations);
                         }
-                        else if (strcmp("status", args_cliente[0]) == 0)
-                        {
-                        }
-                        else if (strcmp("end", args_cliente[0]) == 0)
-                        {
-                            read_res = 0;
-                        }
-                        else
-                        {
-                            write(2, "Error: Command is not valid.\n", 30);
-                        }
+                    }
+                    else if (strcmp("status", args_cliente[0]) == 0)
+                    {
+                    }
+                    else if (strcmp("end", args_cliente[0]) == 0)
+                    {
+                        write(1, "[DEBUG] Finishing...\n", 22);
+                        write(fd_client_fifo, "Terminated", 11);
+                        close(fd_client_fifo);
+                        break;
+                    }
+                    else
+                    {
+                        write(fd_client_fifo, "Error: Command is not valid.\n", 30);
                     }
 
                     free_args_cliente_array(args_cliente, n_args_cliente);
                 }
                 else
                 {
-                    write(2, "Error: Command is not valid.\n", 30);
+                    write(fd_client_fifo, "Error: Command is not valid.\n", 30);
                 }
-
-                close(fd_fifo);
-
-            } while (read_res > 0);
-
+                close(fd_client_fifo);
+            }
+            close(fiford);
+            close(fifowr);
             free(maxOperations);
             free(curOperations);
 
-            unlink("fifo");
+            unlink(SERVER_FIFO_NAME);
         }
         else
         {

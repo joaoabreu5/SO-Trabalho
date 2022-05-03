@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "declarations.h"
 
 int number_of_Digits(int x)
 {
@@ -25,23 +26,27 @@ int number_of_Digits(int x)
 
 int main(int argc, char *argv[])
 {
-    int fd_fifo = open("fifo", O_WRONLY);
+    int fd_srv_fifo = open(SERVER_FIFO_NAME, O_WRONLY);
     int i, args_size = 0;
 
-    if (fd_fifo > 0)
+    if (fd_srv_fifo > 0)
     {
+        message st_message;
+        st_message.client_pid = getpid();
+        char cli_fifo[1024], buf[1024];
+        int fd_clififowr, fd_clififord, bytes_read;
         if (argc > 1)
         {
             int arguments = argc - 1;
             int n_args_len = number_of_Digits(arguments) + 1;
 
-            for(i=1; i<argc; i++)
+            for (i = 1; i < argc; i++)
             {
                 args_size += strlen(argv[i]);
             }
             args_size += n_args_len + arguments;
 
-            char *args = malloc(args_size * sizeof(char));
+            char args[1024];
             char *n_args = malloc(n_args_len * sizeof(char));
 
             snprintf(n_args, n_args_len, "%d", arguments);
@@ -66,24 +71,34 @@ int main(int argc, char *argv[])
             }
             strcat(args, "\0");
 
-            write(fd_fifo, args, strlen(args) + 1);
-            close(fd_fifo);
-            
-            free(args);
+            strcpy(st_message.commands, args);
             free(n_args);
         }
         else
         {
-            write(fd_fifo, "Error", 6);
-            write(2, "Error: Not enough arguments.\n", 30);
-            close(fd_fifo);
-            _exit(EXIT_FAILURE);
+            char args[] = "Error";
+            strcpy(st_message.commands, args);
         }
+        write(fd_srv_fifo, &st_message, sizeof(st_message));
+        close(fd_srv_fifo);
+        snprintf(cli_fifo, sizeof(cli_fifo), CLIENT_FIFO_NAME, (int)st_message.client_pid);
+        mkfifo(cli_fifo, 0777);
+        fd_clififord = open(cli_fifo, O_RDONLY);
+        fd_clififowr = open(cli_fifo, O_WRONLY);
+        while ((bytes_read = read(fd_clififord, buf, sizeof(buf))) > 0)
+        {
+            printf("%s\n", buf);
+            if (strcmp(buf, "Terminated") == 0)
+                break;
+        }
+        close(fd_clififord);
+        close(fd_clififowr);
+        unlink(cli_fifo);
     }
     else
     {
         write(2, "Error: Fifo does not exist.\n", 29);
-        close(fd_fifo);
+        close(fd_srv_fifo);
         _exit(EXIT_FAILURE);
     }
     _exit(EXIT_SUCCESS);
