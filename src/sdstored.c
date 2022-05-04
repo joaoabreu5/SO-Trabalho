@@ -358,43 +358,41 @@ int main(int argc, char *argv[])
             {
                 snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)messageFromClient.client_pid);
                 int fd_client_fifo;
+                int n_args_cliente;
+                char **args_cliente;
 
                 if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
                     perror("open");
 
-                if (strcmp("Error", messageFromClient.commands) != 0)
+                switch (messageFromClient.type)
                 {
-                    int n_args_cliente = 0;
-                    char **args_cliente = parse_args(messageFromClient.commands, &n_args_cliente);
-
-                    if (strcmp("proc-file", args_cliente[0]) == 0)
+                case 0:
+                    n_args_cliente = 0;
+                    args_cliente = parse_args(messageFromClient.commands, &n_args_cliente);
+                    if (check_resources(args_cliente, n_args_cliente, maxOperations, curOperations) == 1)
                     {
-                        if (check_resources(args_cliente, n_args_cliente, maxOperations, curOperations) == 1)
-                        {
-                            proc_file(n_args_cliente, args_cliente, argv[2], fd_client_fifo);
-                            decrement_resources(args_cliente, n_args_cliente, curOperations);
-                        }
+                        proc_file(n_args_cliente, args_cliente, argv[2], fd_client_fifo);
+                        decrement_resources(args_cliente, n_args_cliente, curOperations);
                     }
-                    else if (strcmp("status", args_cliente[0]) == 0)
-                    {
-                    }
-                    else if (strcmp("end", args_cliente[0]) == 0)
-                    {
-                        write(1, "[DEBUG] Finishing...\n", 22);
-                        write(fd_client_fifo, "Terminated", 11);
-                        close(fd_client_fifo);
-                        break;
-                    }
-                    else
-                    {
-                        write(fd_client_fifo, "Error: Command is not valid.\n", 30);
-                    }
-
                     free_args_cliente_array(args_cliente, n_args_cliente);
-                }
-                else
-                {
+                    break;
+                case 1:
+                    // exec Status
+                    break;
+                case 2:
+                    write(1, "[DEBUG] Finishing...\n", 22);
+                    write(fd_client_fifo, "Terminated", 11);
+                    close(fd_client_fifo);
+                    close(fiford);
+                    close(fifowr);
+                    free(maxOperations);
+                    free(curOperations);
+                    unlink(SERVER_FIFO_NAME);
+                    _exit(EXIT_SUCCESS);
+                    break;
+                default:
                     write(fd_client_fifo, "Error: Command is not valid.\n", 30);
+                    break;
                 }
                 close(fd_client_fifo);
             }

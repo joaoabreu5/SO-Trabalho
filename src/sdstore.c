@@ -31,70 +31,101 @@ int main(int argc, char *argv[])
 
     if (fd_srv_fifo > 0)
     {
-        message st_message;
-        st_message.client_pid = getpid();
-        char cli_fifo[1024], buf[1024];
-        snprintf(cli_fifo, sizeof(cli_fifo), CLIENT_FIFO_NAME, (int)st_message.client_pid);
-        mkfifo(cli_fifo, 0777);
-        int fd_clififowr, fd_clififord, bytes_read;
-        if (argc > 1)
+        if (argc >= 2)
         {
-            int arguments = argc - 1;
-            int n_args_len = number_of_Digits(arguments) + 1;
-
-            for (i = 1; i < argc; i++)
+            if (strcmp(argv[1], "status") == 0 || strcmp(argv[1], "proc-file") == 0 || strcmp(argv[1], "exit") == 0)
             {
-                args_size += strlen(argv[i]);
-            }
-            args_size += n_args_len + arguments;
-
-            char args[1024];
-            char *n_args = malloc(n_args_len * sizeof(char));
-
-            snprintf(n_args, n_args_len, "%d", arguments);
-
-            strcpy(args, n_args);
-            strcat(args, " ");
-
-            if (arguments > 1)
-            {
-                strcat(args, argv[1]);
-                strcat(args, " ");
-                for (i = 2; i < argc - 1; i++)
+                message st_message;
+                st_message.client_pid = getpid();
+                char cli_fifo[1024], buf[1024];
+                snprintf(cli_fifo, sizeof(cli_fifo), CLIENT_FIFO_NAME, (int)st_message.client_pid);
+                mkfifo(cli_fifo, 0777);
+                int fd_clififowr, fd_clififord, bytes_read;
+                if (argc > 2)
                 {
-                    strcat(args, argv[i]);
+                    if (strcmp(argv[1], "proc-file") != 0)
+                    {
+                        write(2, "Error: Command not valid\n", 26);
+                        unlink(cli_fifo);
+                        _exit(EXIT_FAILURE);
+                    }
+                    st_message.type = 0;
+                    int arguments = argc - 1;
+                    int n_args_len = number_of_Digits(arguments) + 1;
+
+                    for (i = 1; i < argc; i++)
+                    {
+                        args_size += strlen(argv[i]);
+                    }
+                    args_size += n_args_len + arguments;
+
+                    char args[1024];
+                    char *n_args = malloc(n_args_len * sizeof(char));
+
+                    snprintf(n_args, n_args_len, "%d", arguments);
+
+                    strcpy(args, n_args);
                     strcat(args, " ");
+
+                    if (arguments > 1)
+                    {
+                        strcat(args, argv[1]);
+                        strcat(args, " ");
+                        for (i = 2; i < argc - 1; i++)
+                        {
+                            strcat(args, argv[i]);
+                            strcat(args, " ");
+                        }
+                        strcat(args, argv[i]);
+                    }
+                    else
+                    {
+                        strcat(args, argv[1]);
+                    }
+                    strcat(args, "\0");
+
+                    strcpy(st_message.commands, args);
+                    free(n_args);
                 }
-                strcat(args, argv[i]);
+                else if (argc == 2)
+                {
+                    if (strcmp(argv[1], "proc-file") == 0)
+                    {
+                        close(fd_srv_fifo);
+                        write(2, "Error: Command not valid\n", 26);
+                        unlink(cli_fifo);
+                        _exit(0);
+                    }
+                    else
+                    {
+                        st_message.type = strcmp("status", argv[1]) == 0 ? 1 : 2;
+                        strcpy(st_message.commands, argv[1]);
+                    }
+                }
+                write(fd_srv_fifo, &st_message, sizeof(st_message));
+                close(fd_srv_fifo);
+
+                fd_clififord = open(cli_fifo, O_RDONLY);
+                fd_clififowr = open(cli_fifo, O_WRONLY);
+                while ((bytes_read = read(fd_clififord, buf, sizeof(buf))) > 0)
+                {
+                    printf("%s\n", buf);
+                    if (strcmp(buf, "Terminated") == 0)
+                        break;
+                }
+                close(fd_clififord);
+                close(fd_clififowr);
+                unlink(cli_fifo);
             }
             else
             {
-                strcat(args, argv[1]);
+                write(2, "Error: Command not valid\n", 26);
             }
-            strcat(args, "\0");
-
-            strcpy(st_message.commands, args);
-            free(n_args);
         }
         else
         {
-            char args[] = "Error";
-            strcpy(st_message.commands, args);
+            write(2, "Error: Command not valid\n", 26);
         }
-        write(fd_srv_fifo, &st_message, sizeof(st_message));
-        close(fd_srv_fifo);
-
-        fd_clififord = open(cli_fifo, O_RDONLY);
-        fd_clififowr = open(cli_fifo, O_WRONLY);
-        while ((bytes_read = read(fd_clififord, buf, sizeof(buf))) > 0)
-        {
-            printf("%s\n", buf);
-            if (strcmp(buf, "Terminated") == 0)
-                break;
-        }
-        close(fd_clififord);
-        close(fd_clififowr);
-        unlink(cli_fifo);
     }
     else
     {
