@@ -34,6 +34,8 @@ int main(int argc, char *argv[])
         message st_message;
         st_message.client_pid = getpid();
         char cli_fifo[1024], buf[1024];
+        snprintf(cli_fifo, sizeof(cli_fifo), CLIENT_FIFO_NAME, (int)st_message.client_pid);
+        mkfifo(cli_fifo, 0777);
         int fd_clififowr, fd_clififord, bytes_read;
         if (argc > 1)
         {
@@ -81,8 +83,7 @@ int main(int argc, char *argv[])
         }
         write(fd_srv_fifo, &st_message, sizeof(st_message));
         close(fd_srv_fifo);
-        snprintf(cli_fifo, sizeof(cli_fifo), CLIENT_FIFO_NAME, (int)st_message.client_pid);
-        mkfifo(cli_fifo, 0777);
+
         fd_clififord = open(cli_fifo, O_RDONLY);
         fd_clififowr = open(cli_fifo, O_WRONLY);
         while ((bytes_read = read(fd_clififord, buf, sizeof(buf))) > 0)

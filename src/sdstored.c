@@ -359,7 +359,7 @@ int main(int argc, char *argv[])
                 snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)messageFromClient.client_pid);
                 int fd_client_fifo;
 
-                while ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
+                if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
                     perror("open");
 
                 if (strcmp("Error", messageFromClient.commands) != 0)
