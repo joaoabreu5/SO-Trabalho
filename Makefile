@@ -4,8 +4,8 @@ server: bin/sdstored
 
 client: bin/sdstore
 
-bin/sdstored: obj/sdstored.o obj/parser.o obj/readln.o 
-	gcc -Wall -g obj/sdstored.o obj/parser.o obj/readln.o -o bin/sdstored
+bin/sdstored: obj/sdstored.o obj/parser.o obj/readln.o obj/queue.o
+	gcc -Wall -g obj/sdstored.o obj/parser.o obj/readln.o obj/queue.o -o bin/sdstored
 
 obj/sdstored.o: src/sdstored.c src/declarations.h
 	gcc -Wall -g -c src/sdstored.c -o obj/sdstored.o
@@ -22,8 +22,8 @@ obj/parser.o: src/parser.c src/parser.h
 obj/readln.o: src/readln.c src/readln.h
 	gcc -Wall -g -c src/readln.c -o obj/readln.o
 
-obj/declarations.o : src/declarations.h
-	gcc -Wall -g -c src/declarations.h -o obj/declarations.o
+obj/queue.o: src/queue.c src/queue.h
+	gcc -Wall -g -c src/queue.c -o obj/queue.o
 	
 clean:
 	rm obj/*.o bin/sdstore bin/sdstored

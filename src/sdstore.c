@@ -24,6 +24,16 @@ int number_of_Digits(int x)
     return count;
 }
 
+int has_priority(char *arg)
+{
+    int r = 0;
+    if(strcmp(arg, "0") == 0 || strcmp(arg, "1") == 0 || strcmp(arg, "2") == 0 || strcmp(arg, "3") == 0 || strcmp(arg, "4") == 0 || strcmp(arg, "5") == 0)
+    {
+        r = 1;
+    }
+    return r;
+}
+
 int main(int argc, char *argv[])
 {
     int fd_srv_fifo = open(SERVER_FIFO_NAME, O_WRONLY);
@@ -40,7 +50,7 @@ int main(int argc, char *argv[])
                 char cli_fifo[1024], buf[1024];
                 snprintf(cli_fifo, sizeof(cli_fifo), CLIENT_FIFO_NAME, (int)st_message.client_pid);
                 mkfifo(cli_fifo, 0777);
-                int fd_clififowr, fd_clififord, bytes_read;
+                int fd_clififowr, fd_clififord, bytes_read, first_index = 0;
                 if (argc > 2)
                 {
                     if (strcmp(argv[1], "proc-file") != 0)
@@ -50,37 +60,44 @@ int main(int argc, char *argv[])
                         _exit(EXIT_FAILURE);
                     }
                     st_message.type = 0;
-                    int arguments = argc - 1;
+
+                    int arguments = 0;
+
+                    if (strcmp(argv[2], "-p") == 0 && has_priority(argv[3]) == 1)
+                    {
+                        arguments = argc - 4;
+                        first_index = 4;
+                        st_message.priority = atoi(argv[3]);
+                    }
+                    else
+                    {
+                        arguments = argc-2;
+                        first_index = 2;
+                        st_message.priority = 0;
+                    }
+
+                    st_message.n_args = arguments;
                     int n_args_len = number_of_Digits(arguments) + 1;
 
-                    for (i = 1; i < argc; i++)
+                    for (i = 2; i < argc; i++)
                     {
                         args_size += strlen(argv[i]);
                     }
                     args_size += n_args_len + arguments;
 
-                    char args[1024];
+                    char *args = calloc(1024, sizeof(char));
                     char *n_args = malloc(n_args_len * sizeof(char));
 
                     snprintf(n_args, n_args_len, "%d", arguments);
 
-                    strcpy(args, n_args);
-                    strcat(args, " ");
-
-                    if (arguments > 1)
+                    if (arguments > 0)
                     {
-                        strcat(args, argv[1]);
-                        strcat(args, " ");
-                        for (i = 2; i < argc - 1; i++)
+                        for (i = first_index; i < argc-1; i++)
                         {
                             strcat(args, argv[i]);
                             strcat(args, " ");
                         }
                         strcat(args, argv[i]);
-                    }
-                    else
-                    {
-                        strcat(args, argv[1]);
                     }
                     strcat(args, "\0");
 
@@ -102,6 +119,7 @@ int main(int argc, char *argv[])
                         strcpy(st_message.commands, argv[1]);
                     }
                 }
+                
                 write(fd_srv_fifo, &st_message, sizeof(st_message));
                 close(fd_srv_fifo);
 
