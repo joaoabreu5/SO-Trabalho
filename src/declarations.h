@@ -6,6 +6,7 @@ typedef struct message_cs
 {
     pid_t client_pid;
     int type;
+    int priority;
     char commands[1024];
 } message, *Message;
 

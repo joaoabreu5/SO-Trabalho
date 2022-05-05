@@ -10,6 +10,7 @@
 #include <dirent.h>
 #include "parser.h"
 #include "declarations.h"
+#include "queue.h"
 
 #define SIZE 1024
 
@@ -343,7 +344,51 @@ int main(int argc, char *argv[])
             Operation maxOperations = NULL, curOperations = NULL;
             maxOperations = parse(configFile);
             curOperations = calloc(1, sizeof(operation));
+            int p[2];
+            if (pipe(p) < 0)
+            {
+                _exit(1);
+            }
+            if (fork() == 0)
+            {
+                close(p[1]);
+                fcntl(p[0], F_SETFL, O_NONBLOCK);
+                Node *queue;
+                int i = 0;
+                message buf, exec;
+                int n_read;
+                while (1)
+                {
+                    switch (n_read = read(p[0], &buf, sizeof(buf)))
+                    {
+                    case 0:
+                        _exit(0);
+                        break;
+                    default:
+                        if (n_read > 0)
+                        {
+                            printf("%s\n", buf.commands);
+                            if (i == 0)
+                            {
+                                queue = newNode(buf);
+                            }
+                            else
+                            {
+                                push(&queue, buf);
+                            }
+                            i++;
+                        }
 
+                        if (!isEmpty(&queue))
+                        {
+                            exec = peek(&queue);
+                            pop(&queue);
+                        }
+                        break;
+                    }
+                }
+            }
+            close(p[0]);
             mkfifo(SERVER_FIFO_NAME, 0777);
 
             int read_res;
@@ -356,6 +401,8 @@ int main(int argc, char *argv[])
 
             while ((read_res = read(fiford, &messageFromClient, sizeof(messageFromClient))) > 0)
             {
+                write(p[1], &messageFromClient, sizeof(messageFromClient));
+                /*
                 snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)messageFromClient.client_pid);
                 int fd_client_fifo;
                 int n_args_cliente;
@@ -402,6 +449,8 @@ int main(int argc, char *argv[])
             free(curOperations);
 
             unlink(SERVER_FIFO_NAME);
+            */
+            }
         }
         else
         {
