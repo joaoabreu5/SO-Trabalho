@@ -350,10 +350,9 @@ int main(int argc, char *argv[])
             {
                 close(p[1]);
                 fcntl(p[0], F_SETFL, O_NONBLOCK);
-                Node *queue;
+                Node *queue = NULL;
                 int i = 0;
                 message buf, exec;
-                Message msg_ptr;
                 int n_read, fd_client_fifo;
                 char client_fifo[1024];
                 while (1)
@@ -376,6 +375,7 @@ int main(int argc, char *argv[])
                                 push(&queue, buf);
                             }
                         }
+
                         if (!isEmpty(&queue))
                         {
                             char **args_cliente;
@@ -389,14 +389,12 @@ int main(int argc, char *argv[])
                                 args_cliente = parse_args(exec.commands, exec.n_args);
                                 if (check_resources(args_cliente, exec.n_args, maxOperations, curOperations) == 1)
                                 {
-                                    if (fork())
-                                    {
-                                        proc_file(exec.n_args, args_cliente, argv[2], fd_client_fifo);
-                                        decrement_resources(args_cliente, exec.n_args, curOperations);
-                                    }
+                                    proc_file(exec.n_args, args_cliente, argv[2], fd_client_fifo);
+                                    decrement_resources(args_cliente, exec.n_args, curOperations);
                                     pop(&queue);
                                 }
                                 free_args_cliente_array(args_cliente, exec.n_args);
+
                                 break;
                             case 1:
                                 // exec Status
@@ -417,7 +415,6 @@ int main(int argc, char *argv[])
                             }
                             close(fd_client_fifo);
                         }
-                        // print_Queue(queue);
                         break;
                     }
                 }

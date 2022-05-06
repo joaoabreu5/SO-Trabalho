@@ -38,7 +38,7 @@ void push(Node **head, message msg)
     // Special Case: The head of list has lesser
     // priority than new node. So insert new
     // node before head node and change head node.
-    if ((*head)->commands.priority >= msg.priority)
+    if ((*head)->commands.priority < msg.priority)
     {
 
         // Insert New Node before head
@@ -51,7 +51,7 @@ void push(Node **head, message msg)
         // Traverse the list and find a
         // position to insert new node
         while (start->next != NULL &&
-               start->next->commands.priority <= msg.priority)
+               start->next->commands.priority >= msg.priority)
         {
             start = start->next;
         }
@@ -69,11 +69,12 @@ int isEmpty(Node **head)
     return (*head) == NULL;
 }
 
-void print_Queue(Node *head)
+void print_Queue(Node **head)
 {
-    while (head != NULL)
+    Node *temp = *head;
+    while (temp != NULL)
     {
-        printf("Priority: %d    Commands : %s", head->commands.priority, head->commands.commands);
-        head = head->next;
+        printf("Priority: %d    Commands : %s\n", temp->commands.priority, temp->commands.commands);
+        temp = temp->next;
     }
 }
