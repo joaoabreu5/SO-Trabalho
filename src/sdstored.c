@@ -170,7 +170,7 @@ int check_resources(char **args, int n_args, Operation maxOperations, Operation 
 void decrement_resources(char **args, int n_args, Operation curOperations)
 {
     int i;
-    for (i = 1; i < n_args; i++)
+    for (i = 2; i < n_args; i++)
     {
         if (strcmp(args[i], "nop") == 0)
         {
@@ -341,7 +341,6 @@ int main(int argc, char *argv[])
             curOperations = calloc(1, sizeof(operation));
             int p[2];
 
-            /*
             if (pipe(p) < 0)
             {
                 _exit(1);
@@ -354,7 +353,9 @@ int main(int argc, char *argv[])
                 Node *queue;
                 int i = 0;
                 message buf, exec;
-                int n_read;
+                Message msg_ptr;
+                int n_read, fd_client_fifo;
+                char client_fifo[1024];
                 while (1)
                 {
                     switch (n_read = read(p[0], &buf, sizeof(buf)))
@@ -365,29 +366,65 @@ int main(int argc, char *argv[])
                     default:
                         if (n_read > 0)
                         {
-                            printf("%s\n", buf.commands);
-                            if (i == 0)
+                            if (isEmpty(&queue))
                             {
+
                                 queue = newNode(buf);
                             }
                             else
                             {
                                 push(&queue, buf);
                             }
-                            i++;
                         }
-
                         if (!isEmpty(&queue))
                         {
+                            char **args_cliente;
                             exec = peek(&queue);
-                            pop(&queue);
+                            snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)exec.client_pid);
+                            if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
+                                perror("open");
+                            switch (exec.type)
+                            {
+                            case 0:
+                                args_cliente = parse_args(exec.commands, exec.n_args);
+                                if (check_resources(args_cliente, exec.n_args, maxOperations, curOperations) == 1)
+                                {
+                                    if (fork())
+                                    {
+                                        proc_file(exec.n_args, args_cliente, argv[2], fd_client_fifo);
+                                        decrement_resources(args_cliente, exec.n_args, curOperations);
+                                    }
+                                    pop(&queue);
+                                }
+                                free_args_cliente_array(args_cliente, exec.n_args);
+                                break;
+                            case 1:
+                                // exec Status
+                                break;
+                            case 2:
+                                pop(&queue);
+                                write(1, "[DEBUG] Finishing...\n", 22);
+                                write(fd_client_fifo, "Terminated", 11);
+                                close(fd_client_fifo);
+                                free(maxOperations);
+                                free(curOperations);
+                                unlink(SERVER_FIFO_NAME);
+                                _exit(EXIT_SUCCESS);
+                                break;
+                            default:
+                                write(fd_client_fifo, "Error: Command is not valid.\n", 30);
+                                break;
+                            }
+                            close(fd_client_fifo);
                         }
+                        // print_Queue(queue);
                         break;
                     }
                 }
+                close(p[0]);
             }
             close(p[0]);
-            */
+
             mkfifo(SERVER_FIFO_NAME, 0777);
 
             int read_res;
@@ -400,8 +437,10 @@ int main(int argc, char *argv[])
 
             while ((read_res = read(fiford, &messageFromClient, sizeof(messageFromClient))) > 0)
             {
-                //write(p[1], &messageFromClient, sizeof(messageFromClient));
+                write(p[1], &messageFromClient, sizeof(messageFromClient));
+                /*
                 snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)messageFromClient.client_pid);
+
                 int fd_client_fifo;
                 char **args_cliente;
 
@@ -410,28 +449,28 @@ int main(int argc, char *argv[])
 
                 switch (messageFromClient.type)
                 {
-                    case 0:
-                        args_cliente = parse_args(messageFromClient.commands, messageFromClient.n_args);
-                        if (check_resources(args_cliente, messageFromClient.n_args, maxOperations, curOperations) == 1)
-                        {
-                            proc_file(messageFromClient.n_args, args_cliente, argv[2], fd_client_fifo);
-                            decrement_resources(args_cliente, messageFromClient.n_args, curOperations);
-                        }
-                        free_args_cliente_array(args_cliente, messageFromClient.n_args);
-                        break;
-                    case 1:
-                        // exec Status
-                        break;
-                    case 2:
-                        write(1, "[DEBUG] Finishing...\n", 22);
-                        write(fd_client_fifo, "Terminated", 11);
-                        close(fd_client_fifo);
-                        close(fiford);
-                        close(fifowr);
-                        free(maxOperations);
-                        free(curOperations);
-                        unlink(SERVER_FIFO_NAME);
-                        _exit(EXIT_SUCCESS);
+                case 0:
+                    args_cliente = parse_args(messageFromClient.commands, messageFromClient.n_args);
+                    if (check_resources(args_cliente, messageFromClient.n_args, maxOperations, curOperations) == 1)
+                    {
+                        proc_file(messageFromClient.n_args, args_cliente, argv[2], fd_client_fifo);
+                        decrement_resources(args_cliente, messageFromClient.n_args, curOperations);
+                    }
+                    free_args_cliente_array(args_cliente, messageFromClient.n_args);
+                    break;
+                case 1:
+                    // exec Status
+                    break;
+                case 2:
+                    write(1, "[DEBUG] Finishing...\n", 22);
+                    write(fd_client_fifo, "Terminated", 11);
+                    close(fd_client_fifo);
+                    close(fiford);
+                    close(fifowr);
+                    free(maxOperations);
+                    free(curOperations);
+                    unlink(SERVER_FIFO_NAME);
+                    _exit(EXIT_SUCCESS);
                     break;
                 default:
                     write(fd_client_fifo, "Error: Command is not valid.\n", 30);
@@ -445,6 +484,8 @@ int main(int argc, char *argv[])
             free(curOperations);
 
             unlink(SERVER_FIFO_NAME);
+            */
+            }
         }
         else
         {
