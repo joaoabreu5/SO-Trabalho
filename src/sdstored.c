@@ -8,7 +8,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
-#include "parser.h"
 #include "queue.h"
 
 #define SIZE 1024
@@ -101,106 +100,82 @@ char **parse_args(char *args, int n_args)
     return argv;
 }
 
-int check_resources(char **args, int n_args, Operation maxOperations, Operation curOperations)
+void status(Node *queue, Operation maxOperations, Operation curOperations, int fd_client_fifo)
 {
-    int i, r = 1;
-    int nop, bcompress, bdecompress, gcompress, gdecompress, encrypt, decrypt;
-    nop = bcompress = bdecompress = gcompress = gdecompress = encrypt = decrypt = 0;
-
-    for (i = 1; i < n_args && r == 1; i++)
+    char aux[1024];
+    while (queue != NULL)
     {
-        if (strcmp(args[i], "nop") == 0)
-        {
-            nop++;
-            if (curOperations->nop + nop > maxOperations->nop)
-                r = 0;
-        }
-        else if (strcmp(args[i], "bcompress") == 0)
-        {
-            bcompress++;
-            if (curOperations->bcompress + bcompress > maxOperations->bcompress)
-                r = 0;
-        }
-        else if (strcmp(args[i], "bdecompress") == 0)
-        {
-            bdecompress++;
-            if (curOperations->bdecompress + bdecompress > maxOperations->bdecompress)
-                r = 0;
-        }
-        else if (strcmp(args[i], "gcompress") == 0)
-        {
-            gcompress++;
-            if (curOperations->gcompress + gcompress > maxOperations->gcompress)
-                r = 0;
-        }
-        else if (strcmp(args[i], "gdecompress") == 0)
-        {
-            gdecompress++;
-            if (curOperations->gdecompress + gdecompress > maxOperations->gdecompress)
-                r = 0;
-        }
-        else if (strcmp(args[i], "encrypt") == 0)
-        {
-            encrypt++;
-            if (curOperations->encrypt + encrypt > maxOperations->encrypt)
-                r = 0;
-        }
-        else if (strcmp(args[i], "decrypt") == 0)
-        {
-            decrypt++;
-            if (curOperations->decrypt + decrypt > maxOperations->decrypt)
-                r = 0;
-        }
+        snprintf(aux, sizeof(aux), "Priority: %d Task: proc-file ", queue->commands.priority);
+        strcat(aux, queue->commands.commands);
+        write(fd_client_fifo, aux, sizeof(aux));
+        queue = queue->next;
     }
+    snprintf(aux, sizeof(aux), "Nop: %d/%d", curOperations->nop, maxOperations->nop);
+    write(fd_client_fifo, aux, sizeof(aux));
+
+    snprintf(aux, sizeof(aux), "Bcompress: %d/%d", curOperations->bcompress, maxOperations->bcompress);
+    write(fd_client_fifo, aux, sizeof(aux));
+
+    snprintf(aux, sizeof(aux), "Bdecompress: %d/%d", curOperations->bdecompress, maxOperations->bdecompress);
+    write(fd_client_fifo, aux, sizeof(aux));
+
+    snprintf(aux, sizeof(aux), "Gcompress: %d/%d", curOperations->gcompress, maxOperations->gcompress);
+    write(fd_client_fifo, aux, sizeof(aux));
+
+    snprintf(aux, sizeof(aux), "Gdecompress: %d/%d", curOperations->gdecompress, maxOperations->gdecompress);
+    write(fd_client_fifo, aux, sizeof(aux));
+
+    snprintf(aux, sizeof(aux), "Encrypt: %d/%d", curOperations->encrypt, maxOperations->encrypt);
+    write(fd_client_fifo, aux, sizeof(aux));
+
+    snprintf(aux, sizeof(aux), "Decrypt: %d/%d", curOperations->decrypt, maxOperations->decrypt);
+    write(fd_client_fifo, aux, sizeof(aux));
+
+    write(fd_client_fifo, "Terminated", 11);
+}
+
+int check_resources(Operation lastOp, Operation maxOperations, Operation curOperations)
+{
+    int r = 1;
+
+    if (curOperations->nop + lastOp->nop > maxOperations->nop)
+        r = 0;
+    else if (curOperations->bcompress + lastOp->bcompress > maxOperations->bcompress)
+        r = 0;
+    else if (curOperations->bdecompress + lastOp->bdecompress > maxOperations->bdecompress)
+        r = 0;
+    else if (curOperations->gcompress + lastOp->gcompress > maxOperations->gcompress)
+        r = 0;
+    else if (curOperations->gdecompress + lastOp->gdecompress > maxOperations->gdecompress)
+        r = 0;
+    else if (curOperations->encrypt + lastOp->encrypt > maxOperations->encrypt)
+        r = 0;
+    else if (curOperations->decrypt + lastOp->decrypt > maxOperations->decrypt)
+        r = 0;
 
     if (r == 1)
     {
-        curOperations->nop = curOperations->nop + nop;
-        curOperations->bcompress = curOperations->bcompress + bcompress;
-        curOperations->bdecompress = curOperations->bdecompress + bdecompress;
-        curOperations->gcompress = curOperations->gcompress + gcompress;
-        curOperations->gdecompress = curOperations->gdecompress + gdecompress;
-        curOperations->encrypt = curOperations->encrypt + encrypt;
-        curOperations->decrypt = curOperations->decrypt + decrypt;
+        curOperations->nop = curOperations->nop + lastOp->nop;
+        curOperations->bcompress = curOperations->bcompress + lastOp->bcompress;
+        curOperations->bdecompress = curOperations->bdecompress + lastOp->bdecompress;
+        curOperations->gcompress = curOperations->gcompress + lastOp->gcompress;
+        curOperations->gdecompress = curOperations->gdecompress + lastOp->gdecompress;
+        curOperations->encrypt = curOperations->encrypt + lastOp->encrypt;
+        curOperations->decrypt = curOperations->decrypt + lastOp->decrypt;
     }
 
     return r;
 }
 
-void decrement_resources(char **args, int n_args, Operation curOperations)
+void decrement_resources(Operation lastOp, Operation curOperations)
 {
-    int i;
-    for (i = 2; i < n_args; i++)
-    {
-        if (strcmp(args[i], "nop") == 0)
-        {
-            (curOperations->nop)--;
-        }
-        else if (strcmp(args[i], "bcompress") == 0)
-        {
-            (curOperations->bcompress)--;
-        }
-        else if (strcmp(args[i], "bdecompress") == 0)
-        {
-            (curOperations->bdecompress)--;
-        }
-        else if (strcmp(args[i], "gcompress") == 0)
-        {
-            (curOperations->gcompress)--;
-        }
-        else if (strcmp(args[i], "gdecompress") == 0)
-        {
-            (curOperations->gdecompress)--;
-        }
-        else if (strcmp(args[i], "encrypt") == 0)
-        {
-            (curOperations->encrypt)--;
-        }
-        else if (strcmp(args[i], "decrypt") == 0)
-        {
-            (curOperations->decrypt)--;
-        }
-    }
+    curOperations->bcompress -= lastOp->bcompress;
+    curOperations->bdecompress -= lastOp->bdecompress;
+    curOperations->decrypt -= lastOp->decrypt;
+    curOperations->encrypt -= lastOp->encrypt;
+    curOperations->gcompress -= lastOp->gcompress;
+    curOperations->gdecompress -= lastOp->gdecompress;
+    curOperations->nop -= lastOp->nop;
 }
 
 int proc_file(int argc, char *argv[], char *execs_directory, int fd_client_fifo)
@@ -348,78 +323,108 @@ int main(int argc, char *argv[])
 
             if (fork() == 0)
             {
-                close(p[1]);
-                fcntl(p[0], F_SETFL, O_NONBLOCK);
                 Node *queue = NULL;
-                int i = 0;
+                List *executing_queue = NULL;
+                int i = 0, hasCommands;
                 message buf, exec;
                 int n_read, fd_client_fifo;
                 char client_fifo[1024];
                 while (1)
                 {
-                    switch (n_read = read(p[0], &buf, sizeof(buf)))
+                    hasCommands = 1;
+                    n_read = read(p[0], &buf, sizeof(buf));
+                    if (contains(executing_queue, buf.client_pid))
                     {
-                    case 0:
-                        _exit(0);
-                        break;
-                    default:
-                        if (n_read > 0)
+                        switch (buf.type)
                         {
-                            if (isEmpty(&queue))
-                            {
+                        case 0:
+                            decrement_resources(&buf.op, curOperations);
+                            break;
+                        default:
+                            break;
+                        }
+                        remove_elem(&executing_queue, buf.client_pid);
+                        printf("Taking from executing queue\n");
+                    }
+                    else
+                    {
+                        if (isEmpty(&queue))
+                        {
+                            queue = newNode(buf);
+                        }
+                        else
+                        {
+                            push(&queue, buf);
+                        }
+                        printf("Adding to queue\n");
+                    }
 
-                                queue = newNode(buf);
+                    while (!isEmpty(&queue) && hasCommands)
+                    {
+                        printf("Queue not empty\n");
+                        exec = peek(&queue);
+                        printf("First to execute - %s\n", exec.commands);
+                        print_Op(&exec.op);
+                        if (exec.type == 0)
+                        {
+                            if (check_resources(&exec.op, maxOperations, curOperations))
+                            {
+                                printf("Resources checked\n");
+                                if (fork() == 0)
+                                {
+                                    close(p[0]);
+                                    snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)exec.client_pid);
+
+                                    int fd_client_fifo;
+                                    char **args_cliente;
+
+                                    if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
+                                        perror("open");
+
+                                    args_cliente = parse_args(exec.commands, exec.n_args);
+                                    proc_file(exec.n_args, args_cliente, argv[2], fd_client_fifo);
+                                    free_args_cliente_array(args_cliente, exec.n_args);
+
+                                    write(p[1], &exec, sizeof(exec));
+                                    close(p[1]);
+                                    close(fd_client_fifo);
+                                    _exit(0);
+                                }
+                                add_elem(&executing_queue, exec);
+                                pop(&queue);
                             }
                             else
                             {
-                                push(&queue, buf);
+                                hasCommands = 0;
                             }
                         }
-
-                        if (!isEmpty(&queue))
+                        else
                         {
-                            char **args_cliente;
-                            exec = peek(&queue);
-                            snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)exec.client_pid);
-                            if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
-                                perror("open");
-                            switch (exec.type)
+                            pop(&queue);
+                            if (fork() == 0)
                             {
-                            case 0:
-                                args_cliente = parse_args(exec.commands, exec.n_args);
-                                if (check_resources(args_cliente, exec.n_args, maxOperations, curOperations) == 1)
-                                {
-                                    proc_file(exec.n_args, args_cliente, argv[2], fd_client_fifo);
-                                    decrement_resources(args_cliente, exec.n_args, curOperations);
-                                    pop(&queue);
-                                }
-                                free_args_cliente_array(args_cliente, exec.n_args);
+                                close(p[0]);
+                                snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)exec.client_pid);
 
-                                break;
-                            case 1:
-                                // exec Status
-                                break;
-                            case 2:
-                                pop(&queue);
-                                write(1, "[DEBUG] Finishing...\n", 22);
-                                write(fd_client_fifo, "Terminated", 11);
+                                int fd_client_fifo;
+                                char **args_cliente;
+
+                                if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
+                                    perror("open");
+
+                                status(queue, maxOperations, curOperations, fd_client_fifo);
+
+                                write(p[1], &exec, sizeof(exec));
+                                close(p[1]);
                                 close(fd_client_fifo);
-                                free(maxOperations);
-                                free(curOperations);
-                                unlink(SERVER_FIFO_NAME);
-                                _exit(EXIT_SUCCESS);
-                                break;
-                            default:
-                                write(fd_client_fifo, "Error: Command is not valid.\n", 30);
-                                break;
+                                _exit(0);
                             }
-                            close(fd_client_fifo);
+                            add_elem(&executing_queue, exec);
                         }
-                        break;
                     }
                 }
-                close(p[0]);
             }
+
             close(p[0]);
 
             mkfifo(SERVER_FIFO_NAME, 0777);
@@ -435,6 +440,7 @@ int main(int argc, char *argv[])
             while ((read_res = read(fiford, &messageFromClient, sizeof(messageFromClient))) > 0)
             {
                 write(p[1], &messageFromClient, sizeof(messageFromClient));
+                printf("While reader -> %s\n", messageFromClient.commands);
                 /*
                 snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)messageFromClient.client_pid);
 

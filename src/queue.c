@@ -78,3 +78,49 @@ void print_Queue(Node **head)
         temp = temp->next;
     }
 }
+
+int contains(List *temp, pid_t ppid)
+{
+    int res = 0;
+    while (temp != NULL && !res)
+    {
+        if (temp->commands.client_pid == ppid)
+            res = 1;
+        temp = temp->next;
+    }
+    return res;
+}
+
+void remove_elem(List **temp, pid_t ppid)
+{
+    List *aux = *temp, *aux2;
+    if (aux != NULL)
+    {
+        if (aux->commands.client_pid == ppid)
+        {
+            (*temp) = (*temp)->next;
+            free(aux);
+        }
+        else
+        {
+            while (aux != NULL && aux->commands.client_pid != ppid)
+            {
+                aux2 = aux;
+                aux = aux->next;
+            }
+            if (aux != NULL)
+            {
+                aux2->next = aux->next;
+                free(aux);
+            }
+        }
+    }
+}
+
+void add_elem(List **temp, message msg)
+{
+    List *aux = malloc(sizeof(List));
+    aux->commands = msg;
+    aux->next = (*temp);
+    (*temp) = aux;
+}

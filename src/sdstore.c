@@ -27,7 +27,7 @@ int number_of_Digits(int x)
 int has_priority(char *arg)
 {
     int r = 0;
-    if(strcmp(arg, "0") == 0 || strcmp(arg, "1") == 0 || strcmp(arg, "2") == 0 || strcmp(arg, "3") == 0 || strcmp(arg, "4") == 0 || strcmp(arg, "5") == 0)
+    if (strcmp(arg, "0") == 0 || strcmp(arg, "1") == 0 || strcmp(arg, "2") == 0 || strcmp(arg, "3") == 0 || strcmp(arg, "4") == 0 || strcmp(arg, "5") == 0)
     {
         r = 1;
     }
@@ -47,6 +47,13 @@ int main(int argc, char *argv[])
             {
                 message st_message;
                 st_message.client_pid = getpid();
+                st_message.op.bcompress = 0;
+                st_message.op.bdecompress = 0;
+                st_message.op.gcompress = 0;
+                st_message.op.gdecompress = 0;
+                st_message.op.encrypt = 0;
+                st_message.op.decrypt = 0;
+                st_message.op.nop = 0;
                 char cli_fifo[1024], buf[1024];
                 snprintf(cli_fifo, sizeof(cli_fifo), CLIENT_FIFO_NAME, (int)st_message.client_pid);
                 mkfifo(cli_fifo, 0777);
@@ -71,7 +78,7 @@ int main(int argc, char *argv[])
                     }
                     else
                     {
-                        arguments = argc-2;
+                        arguments = argc - 2;
                         first_index = 2;
                         st_message.priority = 0;
                     }
@@ -92,12 +99,42 @@ int main(int argc, char *argv[])
 
                     if (arguments > 0)
                     {
-                        for (i = first_index; i < argc-1; i++)
+                        for (i = first_index; i <= argc - 1; i++)
                         {
                             strcat(args, argv[i]);
-                            strcat(args, " ");
+                            if (i != argc - 1)
+                            {
+                                strcat(args, " ");
+                            }
+                            if (strcmp(argv[i], "nop") == 0)
+                            {
+                                st_message.op.nop++;
+                            }
+                            else if (strcmp(argv[i], "bcompress") == 0)
+                            {
+                                st_message.op.bcompress++;
+                            }
+                            else if (strcmp(argv[i], "bdecompress") == 0)
+                            {
+                                st_message.op.bdecompress++;
+                            }
+                            else if (strcmp(argv[i], "gcompress") == 0)
+                            {
+                                st_message.op.gcompress++;
+                            }
+                            else if (strcmp(argv[i], "gdecompress") == 0)
+                            {
+                                st_message.op.gdecompress++;
+                            }
+                            else if (strcmp(argv[i], "encrypt") == 0)
+                            {
+                                st_message.op.encrypt++;
+                            }
+                            else if (strcmp(argv[i], "decrypt") == 0)
+                            {
+                                st_message.op.decrypt++;
+                            }
                         }
-                        strcat(args, argv[i]);
                     }
                     strcat(args, "\0");
 
@@ -116,10 +153,12 @@ int main(int argc, char *argv[])
                     else
                     {
                         st_message.type = strcmp("status", argv[1]) == 0 ? 1 : 2;
-                        strcpy(st_message.commands, argv[1]);
+                        st_message.priority = 6;
+                        strcpy(st_message.commands, "");
+                        st_message.n_args = 0;
                     }
                 }
-                
+
                 write(fd_srv_fifo, &st_message, sizeof(st_message));
                 close(fd_srv_fifo);
 

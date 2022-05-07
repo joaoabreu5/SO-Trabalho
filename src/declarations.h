@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include "parser.h"
 
 typedef struct message_cs
 {
+    operation op;
     pid_t client_pid;
     int type;
     int priority;
