@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
                         _exit(EXIT_FAILURE);
                     }
                     st_message.type = 0;
-
+                    st_message.task_number = 0;
                     int arguments = 0;
 
                     if (strcmp(argv[2], "-p") == 0 && has_priority(argv[3]) == 1)

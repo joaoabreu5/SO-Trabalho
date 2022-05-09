@@ -8,6 +8,7 @@ typedef struct message_cs
     operation op;
     pid_t client_pid;
     int type;
+    int task_number;
     int priority;
     int n_args;
     char commands[1024];

@@ -105,7 +105,7 @@ void status(Node *queue, Operation maxOperations, Operation curOperations, int f
     char aux[1024];
     while (queue != NULL)
     {
-        snprintf(aux, sizeof(aux), "task proc-file -p %d ", queue->commands.priority);
+        snprintf(aux, sizeof(aux), "task #%d: proc-file -p %d ", queue->commands.task_number, queue->commands.priority);
         strcat(aux, queue->commands.commands);
         write(fd_client_fifo, &aux, sizeof(aux));
         queue = queue->next;
@@ -476,6 +476,8 @@ int main(int argc, char *argv[])
 
             message messageFromClient;
 
+            int task_n = 0;
+
             while ((read_res = read(fiford, &messageFromClient, sizeof(message))) > 0)
             {
                 snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)messageFromClient.client_pid);
@@ -486,6 +488,8 @@ int main(int argc, char *argv[])
 
                 if (isValid(&messageFromClient.op, maxOperations))
                 {
+                    task_n++;
+                    messageFromClient.task_number = task_n;
                     write(fd_client_fifo, "pending", 11);
                     close(fd_client_fifo);
                     write(p[1], &messageFromClient, sizeof(message));
