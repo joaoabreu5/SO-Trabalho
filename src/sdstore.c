@@ -9,21 +9,6 @@
 #include <sys/stat.h>
 #include "declarations.h"
 
-int number_of_Digits(int x)
-{
-    int count = 0;
-    if (x < 0)
-    {
-        count++;
-    }
-    do
-    {
-        x /= 10;
-        count++;
-    } while (x != 0);
-    return count;
-}
-
 int has_priority(char *arg)
 {
     int r = 0;
@@ -167,7 +152,7 @@ int main(int argc, char *argv[])
                 while ((bytes_read = read(fd_clififord, buf, sizeof(buf))) > 0)
                 {
                     printf("%s\n", buf);
-                    if (strcmp(buf, "Terminated") == 0)
+                    if (strstr(buf, "concluded") != NULL)
                         break;
                 }
                 close(fd_clififord);

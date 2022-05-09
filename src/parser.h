@@ -5,5 +5,5 @@ typedef struct operation
 
 typedef struct operation *Operation;
 
-Operation parse(int fd);
-void print_Op(Operation op);
+Operation parse(int);
+void print_Op(Operation);

@@ -131,7 +131,7 @@ void status(Node *queue, Operation maxOperations, Operation curOperations, int f
     snprintf(aux, sizeof(aux), "Decrypt: %d/%d", curOperations->decrypt, maxOperations->decrypt);
     write(fd_client_fifo, aux, sizeof(aux));
 
-    write(fd_client_fifo, "Terminated", 11);
+    write(fd_client_fifo, "concluded", 11);
 }
 
 int check_resources(Operation lastOp, Operation maxOperations, Operation curOperations)
@@ -178,10 +178,18 @@ void decrement_resources(Operation lastOp, Operation curOperations)
     curOperations->nop -= lastOp->nop;
 }
 
+char *concluded_string(int input_bytes, int output_bytes)
+{
+    int str_size = 42 + number_of_Digits(input_bytes) + number_of_Digits(output_bytes);
+    char *buffer = calloc(str_size, sizeof(char));
+    snprintf(buffer, str_size, "concluded (bytes-input: %d, bytes-output: %d)", input_bytes, output_bytes);
+    return buffer;
+}
+
 int proc_file(int argc, char *argv[], char *execs_directory, int fd_client_fifo)
 {
     int command_number = argc - 2;
-    int i, j, r_exec, r_pipe, pipes[command_number - 1][2];
+    int i, j, r_exec, r_pipe, pipes[command_number - 1][2], input_bytes, output_bytes;
     char *path = NULL, ***comandos = NULL;
 
     write(fd_client_fifo, "Processing", 12);
@@ -196,6 +204,9 @@ int proc_file(int argc, char *argv[], char *execs_directory, int fd_client_fifo)
 
     dup2(fd_in, 0);
     dup2(fd_out, 1);
+
+    input_bytes = lseek(fd_in, 0, SEEK_END);
+    lseek(fd_in, 0, SEEK_SET);
 
     close(fd_in);
     close(fd_out);
@@ -288,7 +299,15 @@ int proc_file(int argc, char *argv[], char *execs_directory, int fd_client_fifo)
 
         free_command_array(comandos, command_number, 2);
     }
-    write(fd_client_fifo, "Terminated", 12);
+
+    fd_out = open(argv[1], O_RDONLY, 0666);
+    output_bytes = lseek(fd_out, 0, SEEK_END);
+    close(fd_out);
+
+    char *str_concluded = concluded_string(input_bytes, output_bytes);
+    write(fd_client_fifo, str_concluded, strlen(str_concluded)+1);
+    free(str_concluded);
+
     dup2(fd_0, 0);
     dup2(fd_1, 1);
 
@@ -471,7 +490,7 @@ int main(int argc, char *argv[])
                     if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
                         perror("open");
 
-                    write(fd_client_fifo, "Terminated", 11);
+                    write(fd_client_fifo, "concluded", 11);
                     close(fd_client_fifo);
                 }
                 printf("While reader -> %s\n", messageFromClient.commands);

@@ -13,5 +13,7 @@ typedef struct message_cs
     char commands[1024];
 } message, *Message;
 
+int number_of_Digits(int);
+
 #define SERVER_FIFO_NAME "server_fifo"
 #define CLIENT_FIFO_NAME "client_%d_fifo"

@@ -4,16 +4,16 @@ server: bin/sdstored
 
 client: bin/sdstore
 
-bin/sdstored: obj/sdstored.o obj/parser.o obj/readln.o obj/queue.o
-	gcc -Wall -g obj/sdstored.o obj/parser.o obj/readln.o obj/queue.o -o bin/sdstored
+bin/sdstored: obj/sdstored.o obj/parser.o obj/readln.o obj/queue.o obj/declarations.o
+	gcc -Wall -g obj/sdstored.o obj/parser.o obj/readln.o obj/queue.o obj/declarations.o -o bin/sdstored
 
-obj/sdstored.o: src/sdstored.c src/declarations.h
+obj/sdstored.o: src/sdstored.c
 	gcc -Wall -g -c src/sdstored.c -o obj/sdstored.o
 	
-bin/sdstore: obj/sdstore.o 
-	gcc -Wall -g obj/sdstore.o -o bin/sdstore
+bin/sdstore: obj/sdstore.o  obj/declarations.o
+	gcc -Wall -g obj/sdstore.o obj/declarations.o -o bin/sdstore
 	
-obj/sdstore.o: src/sdstore.c src/declarations.h
+obj/sdstore.o: src/sdstore.c
 	gcc -Wall -g -c src/sdstore.c -o obj/sdstore.o
 
 obj/parser.o: src/parser.c src/parser.h
@@ -24,6 +24,9 @@ obj/readln.o: src/readln.c src/readln.h
 
 obj/queue.o: src/queue.c src/queue.h
 	gcc -Wall -g -c src/queue.c -o obj/queue.o
+
+obj/declarations.o: src/declarations.c src/declarations.h
+	gcc -Wall -g -c src/declarations.c -o obj/declarations.o
 	
 clean:
 	rm obj/*.o bin/sdstore bin/sdstored
