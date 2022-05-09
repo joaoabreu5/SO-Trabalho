@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
                     }
                 }
 
-                write(fd_srv_fifo, &st_message, sizeof(st_message));
+                write(fd_srv_fifo, &st_message, sizeof(message));
                 close(fd_srv_fifo);
 
                 fd_clififord = open(cli_fifo, O_RDONLY);

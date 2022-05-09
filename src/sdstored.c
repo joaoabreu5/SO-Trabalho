@@ -107,29 +107,29 @@ void status(Node *queue, Operation maxOperations, Operation curOperations, int f
     {
         snprintf(aux, sizeof(aux), "Priority: %d Task: proc-file ", queue->commands.priority);
         strcat(aux, queue->commands.commands);
-        write(fd_client_fifo, aux, sizeof(aux));
+        write(fd_client_fifo, &aux, sizeof(aux));
         queue = queue->next;
     }
-    snprintf(aux, sizeof(aux), "Nop: %d/%d", curOperations->nop, maxOperations->nop);
-    write(fd_client_fifo, aux, sizeof(aux));
+    snprintf(aux, sizeof(aux), "nop: %d/%d (running/max)", curOperations->nop, maxOperations->nop);
+    write(fd_client_fifo, &aux, sizeof(aux));
 
-    snprintf(aux, sizeof(aux), "Bcompress: %d/%d", curOperations->bcompress, maxOperations->bcompress);
-    write(fd_client_fifo, aux, sizeof(aux));
+    snprintf(aux, sizeof(aux), "bcompress: %d/%d (running/max)", curOperations->bcompress, maxOperations->bcompress);
+    write(fd_client_fifo, &aux, sizeof(aux));
 
-    snprintf(aux, sizeof(aux), "Bdecompress: %d/%d", curOperations->bdecompress, maxOperations->bdecompress);
-    write(fd_client_fifo, aux, sizeof(aux));
+    snprintf(aux, sizeof(aux), "bdecompress: %d/%d (running/max)", curOperations->bdecompress, maxOperations->bdecompress);
+    write(fd_client_fifo, &aux, sizeof(aux));
 
-    snprintf(aux, sizeof(aux), "Gcompress: %d/%d", curOperations->gcompress, maxOperations->gcompress);
-    write(fd_client_fifo, aux, sizeof(aux));
+    snprintf(aux, sizeof(aux), "gcompress: %d/%d (running/max)", curOperations->gcompress, maxOperations->gcompress);
+    write(fd_client_fifo, &aux, sizeof(aux));
 
-    snprintf(aux, sizeof(aux), "Gdecompress: %d/%d", curOperations->gdecompress, maxOperations->gdecompress);
-    write(fd_client_fifo, aux, sizeof(aux));
+    snprintf(aux, sizeof(aux), "gdecompress: %d/%d (running/max)", curOperations->gdecompress, maxOperations->gdecompress);
+    write(fd_client_fifo, &aux, sizeof(aux));
 
-    snprintf(aux, sizeof(aux), "Encrypt: %d/%d", curOperations->encrypt, maxOperations->encrypt);
-    write(fd_client_fifo, aux, sizeof(aux));
+    snprintf(aux, sizeof(aux), "encrypt: %d/%d (running/max)", curOperations->encrypt, maxOperations->encrypt);
+    write(fd_client_fifo, &aux, sizeof(aux));
 
-    snprintf(aux, sizeof(aux), "Decrypt: %d/%d", curOperations->decrypt, maxOperations->decrypt);
-    write(fd_client_fifo, aux, sizeof(aux));
+    snprintf(aux, sizeof(aux), "decrypt: %d/%d (running/max)", curOperations->decrypt, maxOperations->decrypt);
+    write(fd_client_fifo, &aux, sizeof(aux));
 
     write(fd_client_fifo, "concluded", 11);
 }
@@ -424,7 +424,7 @@ int main(int argc, char *argv[])
                                     proc_file(exec.n_args, args_cliente, argv[2], fd_client_fifo);
                                     free_args_cliente_array(args_cliente, exec.n_args);
 
-                                    write(p[1], &exec, sizeof(exec));
+                                    write(p[1], &exec, sizeof(message));
                                     close(p[1]);
                                     close(fd_client_fifo);
                                     _exit(0);
@@ -453,7 +453,7 @@ int main(int argc, char *argv[])
 
                                 status(queue, maxOperations, curOperations, fd_client_fifo);
 
-                                write(p[1], &exec, sizeof(exec));
+                                write(p[1], &exec, sizeof(message));
                                 close(p[1]);
                                 close(fd_client_fifo);
                                 _exit(0);
@@ -476,11 +476,11 @@ int main(int argc, char *argv[])
 
             message messageFromClient;
 
-            while ((read_res = read(fiford, &messageFromClient, sizeof(messageFromClient))) > 0)
+            while ((read_res = read(fiford, &messageFromClient, sizeof(message))) > 0)
             {
                 if (isValid(&messageFromClient.op, maxOperations))
                 {
-                    write(p[1], &messageFromClient, sizeof(messageFromClient));
+                    write(p[1], &messageFromClient, sizeof(message));
                 }
                 else
                 {
