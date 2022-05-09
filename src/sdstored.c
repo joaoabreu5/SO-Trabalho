@@ -100,14 +100,17 @@ char **parse_args(char *args, int n_args)
     return argv;
 }
 
-void status(Node *queue, Operation maxOperations, Operation curOperations, int fd_client_fifo)
+void status(List *queue, Operation maxOperations, Operation curOperations, int fd_client_fifo)
 {
     char aux[1024];
     while (queue != NULL)
     {
-        snprintf(aux, sizeof(aux), "task #%d: proc-file -p %d ", queue->commands.task_number, queue->commands.priority);
-        strcat(aux, queue->commands.commands);
-        write(fd_client_fifo, &aux, sizeof(aux));
+        if (queue->commands.type == 0)
+        {
+            snprintf(aux, sizeof(aux), "task #%d: proc-file -p %d ", queue->commands.task_number, queue->commands.priority);
+            strcat(aux, queue->commands.commands);
+            write(fd_client_fifo, &aux, sizeof(aux));
+        }
         queue = queue->next;
     }
     snprintf(aux, sizeof(aux), "transf nop: %d/%d (running/max)", curOperations->nop, maxOperations->nop);
@@ -451,7 +454,7 @@ int main(int argc, char *argv[])
                                 if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
                                     perror("open");
 
-                                status(queue, maxOperations, curOperations, fd_client_fifo);
+                                status(executing_queue, maxOperations, curOperations, fd_client_fifo);
 
                                 write(p[1], &exec, sizeof(message));
                                 close(p[1]);
