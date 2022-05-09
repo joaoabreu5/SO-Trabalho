@@ -105,30 +105,30 @@ void status(Node *queue, Operation maxOperations, Operation curOperations, int f
     char aux[1024];
     while (queue != NULL)
     {
-        snprintf(aux, sizeof(aux), "Priority: %d Task: proc-file ", queue->commands.priority);
+        snprintf(aux, sizeof(aux), "task proc-file -p %d ", queue->commands.priority);
         strcat(aux, queue->commands.commands);
         write(fd_client_fifo, &aux, sizeof(aux));
         queue = queue->next;
     }
-    snprintf(aux, sizeof(aux), "nop: %d/%d (running/max)", curOperations->nop, maxOperations->nop);
+    snprintf(aux, sizeof(aux), "transf nop: %d/%d (running/max)", curOperations->nop, maxOperations->nop);
     write(fd_client_fifo, &aux, sizeof(aux));
 
-    snprintf(aux, sizeof(aux), "bcompress: %d/%d (running/max)", curOperations->bcompress, maxOperations->bcompress);
+    snprintf(aux, sizeof(aux), "transf bcompress: %d/%d (running/max)", curOperations->bcompress, maxOperations->bcompress);
     write(fd_client_fifo, &aux, sizeof(aux));
 
-    snprintf(aux, sizeof(aux), "bdecompress: %d/%d (running/max)", curOperations->bdecompress, maxOperations->bdecompress);
+    snprintf(aux, sizeof(aux), "transf bdecompress: %d/%d (running/max)", curOperations->bdecompress, maxOperations->bdecompress);
     write(fd_client_fifo, &aux, sizeof(aux));
 
-    snprintf(aux, sizeof(aux), "gcompress: %d/%d (running/max)", curOperations->gcompress, maxOperations->gcompress);
+    snprintf(aux, sizeof(aux), "transf gcompress: %d/%d (running/max)", curOperations->gcompress, maxOperations->gcompress);
     write(fd_client_fifo, &aux, sizeof(aux));
 
-    snprintf(aux, sizeof(aux), "gdecompress: %d/%d (running/max)", curOperations->gdecompress, maxOperations->gdecompress);
+    snprintf(aux, sizeof(aux), "transf gdecompress: %d/%d (running/max)", curOperations->gdecompress, maxOperations->gdecompress);
     write(fd_client_fifo, &aux, sizeof(aux));
 
-    snprintf(aux, sizeof(aux), "encrypt: %d/%d (running/max)", curOperations->encrypt, maxOperations->encrypt);
+    snprintf(aux, sizeof(aux), "transf encrypt: %d/%d (running/max)", curOperations->encrypt, maxOperations->encrypt);
     write(fd_client_fifo, &aux, sizeof(aux));
 
-    snprintf(aux, sizeof(aux), "decrypt: %d/%d (running/max)", curOperations->decrypt, maxOperations->decrypt);
+    snprintf(aux, sizeof(aux), "transf decrypt: %d/%d (running/max)", curOperations->decrypt, maxOperations->decrypt);
     write(fd_client_fifo, &aux, sizeof(aux));
 
     write(fd_client_fifo, "concluded", 11);
@@ -192,7 +192,7 @@ int proc_file(int argc, char *argv[], char *execs_directory, int fd_client_fifo)
     int i, j, r_exec, r_pipe, pipes[command_number - 1][2], input_bytes, output_bytes;
     char *path = NULL, ***comandos = NULL;
 
-    write(fd_client_fifo, "Processing", 12);
+    write(fd_client_fifo, "processing", 12);
 
     create_directory(argv[1]);
 
@@ -305,7 +305,7 @@ int proc_file(int argc, char *argv[], char *execs_directory, int fd_client_fifo)
     close(fd_out);
 
     char *str_concluded = concluded_string(input_bytes, output_bytes);
-    write(fd_client_fifo, str_concluded, strlen(str_concluded)+1);
+    write(fd_client_fifo, str_concluded, strlen(str_concluded) + 1);
     free(str_concluded);
 
     dup2(fd_0, 0);
@@ -478,17 +478,20 @@ int main(int argc, char *argv[])
 
             while ((read_res = read(fiford, &messageFromClient, sizeof(message))) > 0)
             {
+                snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)messageFromClient.client_pid);
+                int fd_client_fifo;
+
+                if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
+                    perror("open");
+
                 if (isValid(&messageFromClient.op, maxOperations))
                 {
+                    write(fd_client_fifo, "pending", 11);
+                    close(fd_client_fifo);
                     write(p[1], &messageFromClient, sizeof(message));
                 }
                 else
                 {
-                    snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)messageFromClient.client_pid);
-                    int fd_client_fifo;
-
-                    if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
-                        perror("open");
 
                     write(fd_client_fifo, "concluded", 11);
                     close(fd_client_fifo);
