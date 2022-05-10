@@ -86,6 +86,16 @@ int main(int argc, char *argv[])
                                     write(2, "Error: Input file does not exist\n", 34);
                                     _exit(EXIT_FAILURE);
                                 }
+                                if (argc == 5)
+                                {
+                                    write(2, "Error: No output file path\n", 28);
+                                    _exit(EXIT_FAILURE);
+                                }
+                            }
+                            else if (argc == 4)
+                            {
+                                write(2, "Error: No input file path\n", 27);
+                                _exit(EXIT_FAILURE);                                
                             }
                         }
                         else
@@ -99,17 +109,19 @@ int main(int argc, char *argv[])
                         arguments = argc - 2;
                         first_index = 2;
                         st_message.priority = 0;
-                        if (argc > 2)
+                        if ((test_fd = open(argv[2], O_RDONLY)) > 0)
                         {
-                            if ((test_fd = open(argv[2], O_RDONLY)) > 0)
-                            {
-                                close(test_fd);
-                            }
-                            else
-                            {
-                                write(2, "Error: Input file does not exist\n", 34);
-                                _exit(EXIT_FAILURE);
-                            }
+                            close(test_fd);
+                        }
+                        else
+                        {
+                            write(2, "Error: Input file does not exist\n", 34);
+                            _exit(EXIT_FAILURE);
+                        }
+                        if (argc == 3)
+                        {
+                            write(2, "Error: No output file path\n", 28);
+                            _exit(EXIT_FAILURE);
                         }
                     }
                     st_message.n_args = arguments;
@@ -121,7 +133,7 @@ int main(int argc, char *argv[])
                     }
 
                     char *args = calloc(1024, sizeof(char));
-                    if (arguments > 0)
+                    if (arguments >= 2)
                     {
                         for (i = first_index; i < argc; i++)
                         {
@@ -168,7 +180,7 @@ int main(int argc, char *argv[])
                     if (strcmp(argv[1], "proc-file") == 0)
                     {
                         close(fd_srv_fifo);
-                        write(2, "Error: Command not valid\n", 26);
+                        write(2, "Error: Not enough arguments\n", 29);
                         unlink(cli_fifo);
                         _exit(0);
                     }
@@ -208,7 +220,7 @@ int main(int argc, char *argv[])
     }
     else
     {
-        write(2, "Error: Fifo does not exist.\n", 29);
+        write(2, "Error: FIFO does not exist\n", 28);
         close(fd_srv_fifo);
         _exit(EXIT_FAILURE);
     }
