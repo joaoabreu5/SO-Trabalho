@@ -19,10 +19,23 @@ int has_priority(char *arg)
     return r;
 }
 
+int check_commands(int argc, char *argv[], int first_index)
+{
+    int i, r = 1;
+    for(i=first_index; i<argc && r==1; i++)
+    {
+        if (strcmp(argv[i], "nop") != 0 && strcmp(argv[i], "bcompress") != 0 && strcmp(argv[i], "bdecompress") != 0 && strcmp(argv[i], "gcompress") != 0 && strcmp(argv[i], "gdecompress") != 0 && strcmp(argv[i], "encrypt") != 0 && strcmp(argv[i], "decrypt") != 0)
+        {
+            r = 0;
+        }
+    }
+    return r;
+}
+
 int main(int argc, char *argv[])
 {
     int fd_srv_fifo = open(SERVER_FIFO_NAME, O_WRONLY);
-    int i, args_size = 0;
+    int i, test_fd;
 
     if (fd_srv_fifo > 0)
     {
@@ -55,33 +68,59 @@ int main(int argc, char *argv[])
                     st_message.task_number = 0;
                     int arguments = 0;
 
-                    if (strcmp(argv[2], "-p") == 0 && has_priority(argv[3]) == 1)
+                    if (strcmp(argv[2], "-p") == 0)
                     {
-                        arguments = argc - 4;
-                        first_index = 4;
-                        st_message.priority = atoi(argv[3]);
+                        if (argc > 3 && has_priority(argv[3]) == 1)
+                        {
+                            arguments = argc - 4;
+                            first_index = 4;
+                            st_message.priority = atoi(argv[3]);
+                            if (argc > 4)
+                            {
+                                if ((test_fd = open(argv[4], O_RDONLY)) > 0)
+                                {
+                                    close(test_fd);
+                                }
+                                else
+                                {
+                                    write(2, "Error: Input file does not exist\n", 34);
+                                    _exit(EXIT_FAILURE);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            write(2, "Error: Priority not valid\n", 26);
+                            _exit(EXIT_FAILURE);
+                        }
                     }
                     else
                     {
                         arguments = argc - 2;
                         first_index = 2;
                         st_message.priority = 0;
+                        if (argc > 2)
+                        {
+                            if ((test_fd = open(argv[2], O_RDONLY)) > 0)
+                            {
+                                close(test_fd);
+                            }
+                            else
+                            {
+                                write(2, "Error: Input file does not exist\n", 34);
+                                _exit(EXIT_FAILURE);
+                            }
+                        }
                     }
-
                     st_message.n_args = arguments;
-                    int n_args_len = number_of_Digits(arguments) + 1;
 
-                    for (i = 2; i < argc; i++)
+                    if (check_commands(argc, argv, first_index+2) == 0)
                     {
-                        args_size += strlen(argv[i]);
+                        write(2, "Error: Command not valid\n", 26);
+                        _exit(EXIT_FAILURE);
                     }
-                    args_size += n_args_len + arguments;
 
                     char *args = calloc(1024, sizeof(char));
-                    char *n_args = malloc(n_args_len * sizeof(char));
-
-                    snprintf(n_args, n_args_len, "%d", arguments);
-
                     if (arguments > 0)
                     {
                         for (i = first_index; i < argc; i++)
@@ -122,9 +161,7 @@ int main(int argc, char *argv[])
                         }
                     }
                     strcat(args, "\0");
-
                     strcpy(st_message.commands, args);
-                    free(n_args);
                 }
                 else if (argc == 2)
                 {
