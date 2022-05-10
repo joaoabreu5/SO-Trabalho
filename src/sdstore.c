@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 
                     if (arguments > 0)
                     {
-                        for (i = first_index; i <= argc - 1; i++)
+                        for (i = first_index; i < argc; i++)
                         {
                             strcat(args, argv[i]);
                             if (i != argc - 1)

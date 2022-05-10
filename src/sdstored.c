@@ -195,7 +195,7 @@ int proc_file(int argc, char *argv[], char *execs_directory, int fd_client_fifo)
     int i, j, r_exec, r_pipe, pipes[command_number - 1][2], input_bytes, output_bytes;
     char *path = NULL, ***comandos = NULL;
 
-    write(fd_client_fifo, "processing", 12);
+    write(fd_client_fifo, "processing", 11);
 
     create_directory(argv[1]);
 
@@ -345,6 +345,7 @@ int main(int argc, char *argv[])
         _exit(EXIT_FAILURE);
     }
 
+    int fd_client_fifo;
     int configFile = open(argv[1], O_RDONLY);
     if (configFile > 0)
     {
@@ -367,14 +368,14 @@ int main(int argc, char *argv[])
             {
                 Node *queue = NULL;
                 List *executing_queue = NULL;
-                int i = 0, hasCommands;
+                int hasCommands;
                 message buf, exec;
-                int n_read, fd_client_fifo;
+                int n_read;
                 char client_fifo[1024];
                 while (1)
                 {
                     hasCommands = 1;
-                    n_read = read(p[0], &buf, sizeof(buf));
+                    n_read = read(p[0], &buf, sizeof(message));
                     if (contains(executing_queue, buf.client_pid))
                     {
                         switch (buf.type)
@@ -417,7 +418,6 @@ int main(int argc, char *argv[])
                                     close(p[0]);
                                     snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)exec.client_pid);
 
-                                    int fd_client_fifo;
                                     char **args_cliente;
 
                                     if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
@@ -447,9 +447,6 @@ int main(int argc, char *argv[])
                             {
                                 close(p[0]);
                                 snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)exec.client_pid);
-
-                                int fd_client_fifo;
-                                char **args_cliente;
 
                                 if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
                                     perror("open");
@@ -484,7 +481,6 @@ int main(int argc, char *argv[])
             while ((read_res = read(fiford, &messageFromClient, sizeof(message))) > 0)
             {
                 snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)messageFromClient.client_pid);
-                int fd_client_fifo;
 
                 if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
                     perror("open");
@@ -493,14 +489,14 @@ int main(int argc, char *argv[])
                 {
                     task_n++;
                     messageFromClient.task_number = task_n;
-                    write(fd_client_fifo, "pending", 11);
+                    write(fd_client_fifo, "pending", 8);
                     close(fd_client_fifo);
                     write(p[1], &messageFromClient, sizeof(message));
                 }
                 else
                 {
 
-                    write(fd_client_fifo, "concluded", 11);
+                    write(fd_client_fifo, "concluded", 10);
                     close(fd_client_fifo);
                 }
                 printf("While reader -> %s\n", messageFromClient.commands);
