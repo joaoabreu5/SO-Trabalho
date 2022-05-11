@@ -37,6 +37,14 @@ int main(int argc, char *argv[])
     int fd_srv_fifo = open(SERVER_FIFO_NAME, O_WRONLY);
     int i, test_fd;
 
+    if (argc == 1)
+    {
+        write(1, "./sdstore status\n", 18);
+        write(1, "./sdstore proc-file input-filename output-filename transformation-id-1 transformation-id-2 ...\n", 96);
+        write(1, "./sdstore proc-file -p priority input-filename output-filename transformation-id-1 transformation-id-2 ...\n", 108);
+        _exit(EXIT_SUCCESS);
+    }
+
     if (fd_srv_fifo > 0)
     {
         if (argc >= 2)
@@ -224,5 +232,6 @@ int main(int argc, char *argv[])
         close(fd_srv_fifo);
         _exit(EXIT_FAILURE);
     }
+
     _exit(EXIT_SUCCESS);
 }
