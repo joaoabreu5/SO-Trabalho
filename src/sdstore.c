@@ -22,7 +22,7 @@ int has_priority(char *arg)
 int check_commands(int argc, char *argv[], int first_index)
 {
     int i, r = 1;
-    for(i=first_index; i<argc && r==1; i++)
+    for (i = first_index; i < argc && r == 1; i++)
     {
         if (strcmp(argv[i], "nop") != 0 && strcmp(argv[i], "bcompress") != 0 && strcmp(argv[i], "bdecompress") != 0 && strcmp(argv[i], "gcompress") != 0 && strcmp(argv[i], "gdecompress") != 0 && strcmp(argv[i], "encrypt") != 0 && strcmp(argv[i], "decrypt") != 0)
         {
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
                             else if (argc == 4)
                             {
                                 write(2, "Error: No input file path\n", 27);
-                                _exit(EXIT_FAILURE);                                
+                                _exit(EXIT_FAILURE);
                             }
                         }
                         else
@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
                     }
                     st_message.n_args = arguments;
 
-                    if (check_commands(argc, argv, first_index+2) == 0)
+                    if (check_commands(argc, argv, first_index + 2) == 0)
                     {
                         write(2, "Error: Command not valid\n", 26);
                         _exit(EXIT_FAILURE);
