@@ -24,11 +24,6 @@ void sigterm_handler(int signum)
     write(1, "SIGTERM received...Waiting for queue to end\n", 45);
 }
 
-void sigusr1_handler(int signum)
-{
-    sig_term = 1;
-}
-
 char *get_path(char *exec, char *directory)
 {
     int path_size = strlen(directory) + strlen(exec) + 1;
@@ -384,107 +379,115 @@ int main(int argc, char *argv[])
 
             if ((spid = fork()) == 0)
             {
-                signal(SIGUSR1, sigusr1_handler);
                 Node *queue = NULL;
                 List *executing_queue = NULL;
-                int hasCommands, i = 0;
+                int hasCommands;
                 message buf, exec;
                 int n_read;
                 char client_fifo[1024];
-                while ((n_read = read(p[0], &buf, sizeof(message)) > 0))
+                while (1)
                 {
-                    if (sig_term == 1 && i == 0)
+                    if (sig_term == 1 && isEmpty(&queue))
                     {
                         close(p[1]);
-                        i++;
                     }
+                    hasCommands = 1;
+                    n_read = read(p[0], &buf, sizeof(message));
                     if (n_read > 0)
                     {
-                        if (contains(executing_queue, buf.client_pid))
+                        if (buf.type == -1)
                         {
-                            switch (buf.type)
-                            {
-                            case 0:
-                                decrement_resources(&buf.op, curOperations);
-                                break;
-                            default:
-                                break;
-                            }
-                            remove_elem(&executing_queue, buf.client_pid);
+                            sig_term = 1;
                         }
                         else
                         {
-                            if (isEmpty(&queue))
+                            if (contains(executing_queue, buf.client_pid))
                             {
-                                queue = newNode(buf);
+                                switch (buf.type)
+                                {
+                                case 0:
+                                    decrement_resources(&buf.op, curOperations);
+                                    break;
+                                default:
+                                    break;
+                                }
+                                remove_elem(&executing_queue, buf.client_pid);
                             }
                             else
                             {
-                                push(&queue, buf);
-                            }
-                        }
-
-                        while (!isEmpty(&queue) && hasCommands)
-                        {
-                            exec = peek(&queue);
-                            if (exec.type == 0)
-                            {
-                                if (check_resources(&exec.op, maxOperations, curOperations))
+                                if (isEmpty(&queue))
                                 {
+                                    queue = newNode(buf);
+                                }
+                                else
+                                {
+                                    push(&queue, buf);
+                                }
+                            }
+
+                            while (!isEmpty(&queue) && hasCommands)
+                            {
+                                exec = peek(&queue);
+                                if (exec.type == 0)
+                                {
+                                    if (check_resources(&exec.op, maxOperations, curOperations))
+                                    {
+                                        if (fork() == 0)
+                                        {
+                                            close(p[0]);
+                                            snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)exec.client_pid);
+
+                                            char **args_cliente;
+
+                                            if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
+                                                perror("open");
+
+                                            args_cliente = parse_args(exec.commands, exec.n_args);
+                                            proc_file(exec.n_args, args_cliente, argv[2], fd_client_fifo);
+                                            free_args_cliente_array(args_cliente, exec.n_args);
+
+                                            write(p[1], &exec, sizeof(message));
+                                            close(p[1]);
+                                            close(fd_client_fifo);
+                                            _exit(0);
+                                        }
+                                        add_elem(&executing_queue, exec);
+                                        pop(&queue);
+                                    }
+                                    else
+                                    {
+                                        hasCommands = 0;
+                                    }
+                                }
+                                else
+                                {
+                                    pop(&queue);
                                     if (fork() == 0)
                                     {
                                         close(p[0]);
                                         snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)exec.client_pid);
 
-                                        char **args_cliente;
-
                                         if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
                                             perror("open");
 
-                                        args_cliente = parse_args(exec.commands, exec.n_args);
-                                        proc_file(exec.n_args, args_cliente, argv[2], fd_client_fifo);
-                                        free_args_cliente_array(args_cliente, exec.n_args);
+                                        status(executing_queue, maxOperations, curOperations, fd_client_fifo);
 
                                         write(p[1], &exec, sizeof(message));
                                         close(p[1]);
-
                                         close(fd_client_fifo);
                                         _exit(0);
                                     }
                                     add_elem(&executing_queue, exec);
-                                    pop(&queue);
                                 }
-                                else
-                                {
-                                    hasCommands = 0;
-                                }
-                            }
-                            else
-                            {
-                                pop(&queue);
-                                if (fork() == 0)
-                                {
-                                    close(p[0]);
-                                    snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)exec.client_pid);
-
-                                    if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
-                                        perror("open");
-
-                                    status(executing_queue, maxOperations, curOperations, fd_client_fifo);
-
-                                    write(p[1], &exec, sizeof(message));
-                                    close(p[1]);
-
-                                    close(fd_client_fifo);
-                                    _exit(0);
-                                }
-                                add_elem(&executing_queue, exec);
                             }
                         }
                     }
+                    else
+                    {
+                        close(p[0]);
+                        _exit(0);
+                    }
                 }
-                close(p[0]);
-                _exit(0);
             }
 
             close(p[0]);
@@ -525,8 +528,9 @@ int main(int argc, char *argv[])
             }
             close(fiford);
             unlink(SERVER_FIFO_NAME);
+            messageFromClient.type = -1;
+            write(p[1], &messageFromClient, sizeof(message));
             close(p[1]);
-            kill(spid, SIGUSR1);
             wait(NULL);
         }
         else
