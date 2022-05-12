@@ -208,7 +208,8 @@ int main(int argc, char *argv[])
                 fd_clififowr = open(cli_fifo, O_WRONLY);
                 while ((bytes_read = read(fd_clififord, buf, sizeof(buf))) > 0)
                 {
-                    printf("%s\n", buf);
+                    strcat(buf, "\n");
+                    write(1, buf, strlen(buf) + 1);
                     if (strstr(buf, "concluded") != NULL)
                         break;
                 }
