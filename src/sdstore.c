@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
     {
         if (argc >= 2)
         {
-            if (strcmp(argv[1], "status") == 0 || strcmp(argv[1], "proc-file") == 0 || strcmp(argv[1], "exit") == 0)
+            if (strcmp(argv[1], "status") == 0 || strcmp(argv[1], "proc-file") == 0)
             {
                 message st_message;
                 st_message.client_pid = getpid();
@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
                     }
                     else
                     {
-                        st_message.type = strcmp("status", argv[1]) == 0 ? 1 : 2;
+                        st_message.type = 1;
                         st_message.priority = 6;
                         strcpy(st_message.commands, "");
                         st_message.n_args = 0;
