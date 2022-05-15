@@ -4,7 +4,6 @@ typedef struct node
 {
     message commands;
     struct node *next;
-
 } Node;
 
 typedef struct list

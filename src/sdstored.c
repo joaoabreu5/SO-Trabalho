@@ -521,7 +521,6 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-
                     write(fd_client_fifo, "concluded", 10);
                     close(fd_client_fifo);
                 }
