@@ -7,11 +7,6 @@
 
 #define OP_SIZE 7
 
-/*
-    Function that takes as a parameter a string that represents the name of the file we want to read.
-    If the file exists, every line is parsed and added to an array of operation and the array is returned,
-    Else an error message is written in the stderr and NULL is returned
-*/
 Operation parse(int fd)
 {
     int i = 0;
@@ -65,7 +60,6 @@ Operation parse(int fd)
     }
 
     free(buffer);
-
     return ops;
 }
 

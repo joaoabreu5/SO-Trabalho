@@ -21,7 +21,7 @@ void sigterm_handler(int signum)
 {
     sig_term = 1;
     close(fifowr);
-    write(1, "SIGTERM received...Waiting for queue to end\n", 45);
+    write(1, "SIGTERM received... Waiting for queue to end.\n", 47);
 }
 
 char *get_path(char *exec, char *directory)
@@ -257,7 +257,7 @@ int proc_file(int argc, char *argv[], char *execs_directory, int fd_client_fifo)
             r_pipe = pipe(pipes[i]);
             if (r_pipe == -1)
             {
-                perror("pipe");
+                write(2, "Error: Creating pipe.\n", 23);
                 return -1;
             }
         }
@@ -355,7 +355,7 @@ int main(int argc, char *argv[])
     if (argc < 3)
     {
         write(2, "Error: Not enough arguments.\n", 30);
-        _exit(EXIT_FAILURE);
+        return -1;
     }
 
     int fd_client_fifo;
@@ -372,9 +372,10 @@ int main(int argc, char *argv[])
             curOperations = calloc(1, sizeof(operation));
             int p[2], spid;
 
-            if (pipe(p) < 0)
+            if (pipe(p) == -1)
             {
-                _exit(1);
+                write(2, "Error: Creating pipe.\n", 23);
+                return -1;
             }
 
             if ((spid = fork()) == 0)
@@ -440,8 +441,10 @@ int main(int argc, char *argv[])
                                             char **args_cliente;
 
                                             if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
-                                                perror("open");
-
+                                            {
+                                                write(2, "Error: Opening client FIFO.\n", 29);
+                                                return -1;
+                                            }
                                             args_cliente = parse_args(exec.commands, exec.n_args);
                                             proc_file(exec.n_args, args_cliente, argv[2], fd_client_fifo);
                                             free_args_cliente_array(args_cliente, exec.n_args);
@@ -468,8 +471,11 @@ int main(int argc, char *argv[])
                                         snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)exec.client_pid);
 
                                         if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
-                                            perror("open");
-
+                                        {
+                                            write(2, "Error: Opening client FIFO.\n", 29);
+                                            return -1;
+                                        }
+                                            
                                         status(executing_queue, maxOperations, curOperations, fd_client_fifo);
 
                                         write(p[1], &exec, sizeof(message));
@@ -485,7 +491,7 @@ int main(int argc, char *argv[])
                     else
                     {
                         close(p[0]);
-                        _exit(0);
+                        return 0;
                     }
                 }
             }
@@ -509,7 +515,10 @@ int main(int argc, char *argv[])
                 snprintf(client_fifo, 1024, CLIENT_FIFO_NAME, (int)messageFromClient.client_pid);
 
                 if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
-                    perror("open");
+                {
+                    write(2, "Error: Opening client FIFO.\n", 29);
+                    return -1;
+                }
 
                 if (isValid(&messageFromClient.op, maxOperations) && !sig_term)
                 {
@@ -535,14 +544,14 @@ int main(int argc, char *argv[])
         else
         {
             write(2, "Error: Directory does not exist.\n", 34);
-            _exit(EXIT_FAILURE);
+            return -1;
         }
     }
     else
     {
         write(2, "Error: The file does not exist.\n", 33);
         close(configFile);
-        _exit(EXIT_FAILURE);
+        return -1;
     }
-    _exit(EXIT_SUCCESS);
+    return 0;
 }

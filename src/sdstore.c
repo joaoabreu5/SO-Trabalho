@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
         write(1, "./sdstore status\n", 18);
         write(1, "./sdstore proc-file input-filename output-filename transformation-id-1 transformation-id-2 ...\n", 96);
         write(1, "./sdstore proc-file -p priority input-filename output-filename transformation-id-1 transformation-id-2 ...\n", 108);
-        _exit(EXIT_SUCCESS);
+        return 0;
     }
 
     if (fd_srv_fifo > 0)
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
                     {
                         write(2, "Error: Command not valid\n", 26);
                         unlink(cli_fifo);
-                        _exit(EXIT_FAILURE);
+                        return -1;
                     }
                     st_message.type = 0;
                     st_message.task_number = 0;
@@ -92,24 +92,24 @@ int main(int argc, char *argv[])
                                 else
                                 {
                                     write(2, "Error: Input file does not exist\n", 34);
-                                    _exit(EXIT_FAILURE);
+                                    return -1;
                                 }
                                 if (argc == 5)
                                 {
                                     write(2, "Error: No output file path\n", 28);
-                                    _exit(EXIT_FAILURE);
+                                    return -1;
                                 }
                             }
                             else if (argc == 4)
                             {
                                 write(2, "Error: No input file path\n", 27);
-                                _exit(EXIT_FAILURE);
+                                return -1;
                             }
                         }
                         else
                         {
                             write(2, "Error: Priority not valid\n", 26);
-                            _exit(EXIT_FAILURE);
+                            return -1;
                         }
                     }
                     else
@@ -124,12 +124,12 @@ int main(int argc, char *argv[])
                         else
                         {
                             write(2, "Error: Input file does not exist\n", 34);
-                            _exit(EXIT_FAILURE);
+                            return -1;
                         }
                         if (argc == 3)
                         {
                             write(2, "Error: No output file path\n", 28);
-                            _exit(EXIT_FAILURE);
+                            return -1;
                         }
                     }
                     st_message.n_args = arguments;
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
                     if (check_commands(argc, argv, first_index + 2) == 0)
                     {
                         write(2, "Error: Command not valid\n", 26);
-                        _exit(EXIT_FAILURE);
+                        return -1;
                     }
 
                     char *args = calloc(1024, sizeof(char));
@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
                         close(fd_srv_fifo);
                         write(2, "Error: Not enough arguments\n", 29);
                         unlink(cli_fifo);
-                        _exit(0);
+                        return 0;
                     }
                     else
                     {
@@ -231,8 +231,8 @@ int main(int argc, char *argv[])
     {
         write(2, "Error: FIFO does not exist\n", 28);
         close(fd_srv_fifo);
-        _exit(EXIT_FAILURE);
+        return -1;
     }
 
-    _exit(EXIT_SUCCESS);
+    return 0;
 }
