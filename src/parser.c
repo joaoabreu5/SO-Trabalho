@@ -7,6 +7,26 @@
 
 #define OP_SIZE 7
 
+void remove_BeginningSpaces(char *str)
+{
+    int i, n_spaces = 0, str_len;
+    
+    if (str != NULL)
+    {
+        str_len = strlen(str);
+
+        for(i = 0; i < str_len && (str[i] == ' ' || str[i] == '\t'); i++)
+        {
+            n_spaces++;
+        }
+
+        for(i = 0; n_spaces > 0 && i < str_len-n_spaces+1; i++)
+        {
+            str[i] = str[i+n_spaces];
+        }
+    }
+}
+
 Operation parse(int fd)
 {
     int i = 0;
@@ -19,6 +39,7 @@ Operation parse(int fd)
     while (readln(fd, buffer, 100) > 0 && i < OP_SIZE)
     {
         aux = strdup(buffer);
+        remove_BeginningSpaces(aux);
         aux_free = aux;
         line = strsep(&aux, " ");
         if (line != NULL)

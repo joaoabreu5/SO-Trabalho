@@ -21,7 +21,7 @@ void sigterm_handler(int signum)
 {
     sig_term = 1;
     close(fifowr);
-    write(1, "SIGTERM received... Waiting for queue to end.\n", 47);
+    write(1, "SIGTERM received... Waiting for queue to end\n", 46);
 }
 
 char *get_path(char *exec, char *directory)
@@ -257,7 +257,7 @@ int proc_file(int argc, char *argv[], char *execs_directory, int fd_client_fifo)
             r_pipe = pipe(pipes[i]);
             if (r_pipe == -1)
             {
-                write(2, "Error: Creating pipe.\n", 23);
+                write(2, "Error: Creating pipe\n", 22);
                 return -1;
             }
         }
@@ -354,7 +354,7 @@ int main(int argc, char *argv[])
     signal(SIGTERM, sigterm_handler);
     if (argc < 3)
     {
-        write(2, "Error: Not enough arguments.\n", 30);
+        write(2, "Error: Not enough arguments\n", 29);
         return -1;
     }
 
@@ -374,7 +374,7 @@ int main(int argc, char *argv[])
 
             if (pipe(p) == -1)
             {
-                write(2, "Error: Creating pipe.\n", 23);
+                write(2, "Error: Creating pipe\n", 22);
                 return -1;
             }
 
@@ -442,7 +442,7 @@ int main(int argc, char *argv[])
 
                                             if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
                                             {
-                                                write(2, "Error: Opening client FIFO.\n", 29);
+                                                write(2, "Error: Opening client FIFO\n", 28);
                                                 return -1;
                                             }
                                             args_cliente = parse_args(exec.commands, exec.n_args);
@@ -472,7 +472,7 @@ int main(int argc, char *argv[])
 
                                         if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
                                         {
-                                            write(2, "Error: Opening client FIFO.\n", 29);
+                                            write(2, "Error: Opening client FIFO\n", 28);
                                             return -1;
                                         }
                                             
@@ -516,7 +516,7 @@ int main(int argc, char *argv[])
 
                 if ((fd_client_fifo = open(client_fifo, O_WRONLY)) == -1)
                 {
-                    write(2, "Error: Opening client FIFO.\n", 29);
+                    write(2, "Error: Opening client FIFO\n", 28);
                     return -1;
                 }
 
@@ -543,13 +543,13 @@ int main(int argc, char *argv[])
         }
         else
         {
-            write(2, "Error: Directory does not exist.\n", 34);
+            write(2, "Error: Directory does not exist\n", 33);
             return -1;
         }
     }
     else
     {
-        write(2, "Error: The file does not exist.\n", 33);
+        write(2, "Error: Configuration file does not exist\n", 42);
         close(configFile);
         return -1;
     }
