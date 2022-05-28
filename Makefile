@@ -1,8 +1,8 @@
-all: server client
+all: directories server client
 
-server: bin/sdstored
+server: directories bin/sdstored
 
-client: bin/sdstore
+client: directories bin/sdstore
 
 bin/sdstored: obj/sdstored.o obj/parser.o obj/readln.o obj/queue.o obj/declarations.o
 	gcc -Wall -g obj/sdstored.o obj/parser.o obj/readln.o obj/queue.o obj/declarations.o -o bin/sdstored
@@ -27,6 +27,9 @@ obj/queue.o: src/queue.c src/queue.h
 
 obj/declarations.o: src/declarations.c src/declarations.h
 	gcc -Wall -g -c src/declarations.c -o obj/declarations.o
-	
+
+directories: 
+	mkdir -p "bin" "obj"
+
 clean:
 	rm obj/*.o bin/sdstore bin/sdstored
