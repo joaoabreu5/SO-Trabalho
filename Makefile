@@ -29,7 +29,7 @@ obj/declarations.o: src/declarations.c src/declarations.h
 	gcc -Wall -g -c src/declarations.c -o obj/declarations.o
 
 directories: 
-	mkdir -p "bin" "obj"
+	mkdir -p bin obj
 
 clean:
 	rm obj/*.o bin/sdstore bin/sdstored
