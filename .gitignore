@@ -1,4 +1,4 @@
-# Ignore all files but .c, .h, .md, Makefile, .gitignore, .gitkeep files and .pdf 
+# Ignore all files but .c, .h, .md, Makefile, .gitignore, .gitkeep, .docx and .pdf files
 *
 !*/
 !**/*.c
@@ -7,4 +7,5 @@
 !**/Makefile
 !**/*.gitignore
 !**/*.gitkeep
+!**/*.docx
 !**/*.pdf
