@@ -1,2 +1,2 @@
-src/parser.h linguist-language=c
+*.h linguist-language=c
 SDStore-transf/** linguist-vendored
