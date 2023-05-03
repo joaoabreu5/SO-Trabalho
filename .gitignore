@@ -1,11 +1,12 @@
-# Ignore all files but .c, .h, .md, Makefile, .gitignore, .gitkeep, .docx and .pdf files
+# Ignore all files but .c, .h, .md, Makefile, .gitignore, .gitattributes, .gitkeep, .docx and .pdf files
 *
 !*/
 !**/*.c
 !**/*.h
-!**/*.md
 !**/Makefile
-!**/*.gitignore
-!**/*.gitkeep
+!**/.gitignore
+!**/.gitattributes
+!**/.gitkeep
 !**/*.docx
 !**/*.pdf
+!**/*.md
