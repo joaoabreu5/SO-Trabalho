@@ -32,4 +32,5 @@ directories:
 	mkdir -p bin obj
 
 clean:
-	rm obj/*.o bin/sdstore bin/sdstored
+	rm -f obj/*.o bin/sdstore bin/sdstored
+	rmdir obj bin

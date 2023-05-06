@@ -146,7 +146,7 @@ void status(List *queue, Operation maxOperations, Operation curOperations, int f
     snprintf(aux, sizeof(aux), "transf decrypt: %d/%d (running/max)", curOperations->decrypt, maxOperations->decrypt);
     write(fd_client_fifo, &aux, sizeof(aux));
 
-    write(fd_client_fifo, "concluded", 11);
+    write(fd_client_fifo, "concluded", 10);
 }
 
 int check_resources(Operation lastOp, Operation maxOperations, Operation curOperations)
